@@ -167,3 +167,72 @@ def setup_app_structure(
         readme_content = resolver.resolve("README.md")
         if readme_content is not None:
             (project_path / "README.md").write_text(readme_content, encoding="utf-8")
+
+
+# Files created by UV init / git that should not be duplicated
+_UV_GENERATED_FILES = frozenset(
+    {
+        "pyproject.toml",
+        ".gitignore",
+        ".python-version",
+        "README.md",
+        "main.py",
+        "uv.lock",
+    }
+)
+
+
+def setup_imported_structure(
+    project_path: Path,
+    folders: list[str | dict[str, Any]],
+    root_files: list[str] | None = None,
+    resolver: BoilerplateResolver | None = None,
+    skip_files: bool = False,
+    file_overrides: dict[str, str] | None = None,
+) -> None:
+    """Create project structure from an imported tree at the project root.
+
+    Unlike setup_app_structure(), this does NOT create an app/ directory.
+    All folders are created directly at the project root, and root-level
+    files from the imported tree are created (skipping UV-generated files).
+
+    Args:
+        project_path: Path to the project directory.
+        folders: List of folder specifications from the imported tree.
+        root_files: List of root-level file names from the imported tree.
+        resolver: Optional BoilerplateResolver for populating files with starter content.
+        skip_files: When True, skip creating template files (only dirs + __init__.py).
+        file_overrides: Mapping of canonical file paths to user-provided content.
+    """
+    # Delete UV's main.py — imported structure defines its own layout
+    uv_main = project_path / "main.py"
+    if uv_main.exists():
+        uv_main.unlink()
+
+    # Create all folders at project root (no app/ nesting)
+    if folders:
+        create_folders(
+            project_path,
+            folders,
+            parent_create_init=False,
+            resolver=resolver,
+            skip_files=skip_files,
+            file_overrides=file_overrides,
+        )
+
+    # Create root-level files from imported tree
+    if root_files and not skip_files:
+        for file_name in root_files:
+            file_path = project_path / file_name
+            canonical_key = file_name
+            has_override = file_overrides and canonical_key in file_overrides
+
+            if file_name in _UV_GENERATED_FILES and not has_override:
+                # UV created this file and no user override — leave as-is
+                continue
+
+            if has_override:
+                # User override replaces UV-generated content or creates new file
+                file_path.write_text(file_overrides[canonical_key], encoding="utf-8")
+            elif not file_path.exists():
+                file_path.touch()

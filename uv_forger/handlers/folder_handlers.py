@@ -119,17 +119,27 @@ def scan_folder_from_disk(
 
 
 def get_canonical_file_path(
-    folders: list[dict[str, Any]], item_path: list[int | str]
+    folders: list[dict[str, Any]],
+    item_path: list[int | str],
+    root_files: list[str] | None = None,
 ) -> str | None:
     """Walk the folder tree by navigation path to build a canonical file path.
 
     Args:
         folders: Normalized folder list from state.
         item_path: Navigation path (e.g., [0, "files", 1] or [0, "subfolders", 0, "files", 2]).
+        root_files: Optional list of root-level file names for imported structures.
 
     Returns:
         Canonical path string like "core/state.py", or None if path is invalid.
     """
+    # Handle root_files paths (e.g., ["root_files", 0])
+    if item_path and len(item_path) == 2 and item_path[0] == "root_files":
+        idx = item_path[1]
+        if root_files and isinstance(idx, int) and 0 <= idx < len(root_files):
+            return root_files[idx]
+        return None
+
     parts: list[str] = []
     current: Any = folders
     for segment in item_path:
@@ -204,7 +214,9 @@ class FolderHandlersMixin:
 
         # Show pencil icon for files with content overrides
         if item_type == "file":
-            canonical = get_canonical_file_path(self.state.folders, item_path)
+            canonical = get_canonical_file_path(
+                self.state.folders, item_path, root_files=self.state.root_files
+            )
             if canonical and canonical in self.state.file_overrides:
                 row_controls.append(
                     ft.Icon(ft.Icons.EDIT_NOTE, size=10, color=UIConfig.COLOR_INFO)
@@ -348,15 +360,26 @@ class FolderHandlersMixin:
         """Update the folder display container with current folder structure."""
         folder_controls = []
 
+        # Show root-level files from imported structure before folders
+        if self.state.imported_structure and self.state.root_files:
+            for rf_idx, rf_name in enumerate(self.state.root_files):
+                rf_path = ["root_files", rf_idx]
+                folder_controls.append(
+                    self._create_item_container(rf_name, rf_path, "file", indent=0)
+                )
+
         for idx, folder in enumerate(self.state.folders):
             self._process_folder_recursive(folder, [idx], 0, folder_controls)
 
         self.controls.subfolders_container.content.controls = folder_controls
 
         folder_count, file_count = self._count_folders_and_files(self.state.folders)
-        self.controls.app_subfolders_label.value = (
-            f"App Subfolders: {folder_count} folders, {file_count} files"
-        )
+        if self.state.imported_structure:
+            total_files = file_count + len(self.state.root_files)
+            label = f"Project Structure: {folder_count} folders, {total_files} files"
+        else:
+            label = f"App Subfolders: {folder_count} folders, {file_count} files"
+        self.controls.app_subfolders_label.value = label
 
         self._update_preset_button_state()
         self.page.update()
@@ -412,6 +435,10 @@ class FolderHandlersMixin:
         """
         if not path:
             return self.state.folders, None
+
+        # Handle root_files paths (e.g., ["root_files", 0])
+        if path[0] == "root_files":
+            return self.state.root_files, path[-1]
 
         current = self.state.folders
         for segment in path[:-1]:
@@ -485,7 +512,9 @@ class FolderHandlersMixin:
                     # Build canonical prefix for insertion point
                     if parent_path is not None:
                         parent_canonical = get_canonical_file_path(
-                            self.state.folders, parent_path
+                            self.state.folders,
+                            parent_path,
+                            root_files=self.state.root_files,
                         )
                         prefix = f"{parent_canonical}/" if parent_canonical else ""
                     else:
@@ -512,7 +541,11 @@ class FolderHandlersMixin:
                 if content is not None:
                     file_idx = len(parent_container) - 1
                     file_path = parent_path + ["files", file_idx]
-                    canonical = get_canonical_file_path(self.state.folders, file_path)
+                    canonical = get_canonical_file_path(
+                        self.state.folders,
+                        file_path,
+                        root_files=self.state.root_files,
+                    )
                     if canonical:
                         self.state.file_overrides[canonical] = content
 
@@ -628,6 +661,14 @@ class FolderHandlersMixin:
         if isinstance(idx, int) and idx < len(parent_container):
             item = parent_container[idx]
             item_name = item.get("name", "unnamed") if isinstance(item, dict) else item
+
+            # Clean up file_overrides for removed root files
+            if (
+                isinstance(item, str)
+                and self.state.selected_item_path
+                and (self.state.selected_item_path[0] == "root_files")
+            ):
+                self.state.file_overrides.pop(item, None)
 
             del parent_container[idx]
 
@@ -768,7 +809,9 @@ class FolderHandlersMixin:
         # Compute canonical prefix for file_overrides
         # Build the prefix by walking the parent path
         if parent_path is not None:
-            parent_canonical = get_canonical_file_path(self.state.folders, parent_path)
+            parent_canonical = get_canonical_file_path(
+                self.state.folders, parent_path, root_files=self.state.root_files
+            )
             if parent_canonical:
                 prefix = f"{parent_canonical}/"
             else:
@@ -821,7 +864,9 @@ class FolderHandlersMixin:
         """Show a read-only preview of file content."""
         from uv_forger.ui.content_dialogs import create_file_preview_dialog
 
-        canonical = get_canonical_file_path(self.state.folders, item_path)
+        canonical = get_canonical_file_path(
+            self.state.folders, item_path, root_files=self.state.root_files
+        )
         if not canonical:
             return
 
@@ -859,7 +904,9 @@ class FolderHandlersMixin:
         """Open the editor view for a file."""
         from uv_forger.ui.dialogs import create_file_editor_view
 
-        canonical = get_canonical_file_path(self.state.folders, item_path)
+        canonical = get_canonical_file_path(
+            self.state.folders, item_path, root_files=self.state.root_files
+        )
         if not canonical:
             return
 
@@ -961,7 +1008,9 @@ class FolderHandlersMixin:
 
     async def _import_file(self, item_path: list[int | str], filename: str) -> None:
         """Import content from a local file into this project file."""
-        canonical = get_canonical_file_path(self.state.folders, item_path)
+        canonical = get_canonical_file_path(
+            self.state.folders, item_path, root_files=self.state.root_files
+        )
         if not canonical:
             return
 
@@ -984,8 +1033,93 @@ class FolderHandlersMixin:
 
     def _reset_file_override(self, item_path: list[int | str], filename: str) -> None:
         """Remove any content override for a file."""
-        canonical = get_canonical_file_path(self.state.folders, item_path)
+        canonical = get_canonical_file_path(
+            self.state.folders, item_path, root_files=self.state.root_files
+        )
         if canonical and canonical in self.state.file_overrides:
             del self.state.file_overrides[canonical]
             self._update_folder_display()
             self._set_status(f"Reset {filename} to default", "info", update=True)
+
+    async def on_import_tree(self, e: ft.ControlEvent) -> None:
+        """Handle Import Tree button click. Opens paste-tree dialog."""
+        from uv_forger.core.template_merger import merge_folder_lists
+        from uv_forger.ui.dialogs import create_import_tree_dialog
+
+        def close_dialog(_=None):
+            dialog.open = False
+            self.state.active_dialog = None
+            self.page.update()
+
+        def on_import(folders: list[dict], root_files: list[str], mode: str):
+            if mode == "merge":
+                self.state.folders = merge_folder_lists(self.state.folders, folders)
+                # Merge root files (deduplicate)
+                existing = set(self.state.root_files)
+                for rf in root_files:
+                    if rf not in existing:
+                        self.state.root_files.append(rf)
+            else:
+                self.state.folders = folders
+                self.state.root_files = list(root_files)
+            self.state.folders_modified = True
+            self.state.imported_structure = True
+            close_dialog()
+            self._update_folder_display()
+            folder_count = len(folders)
+            root_file_count = len(self.state.root_files)
+            parts = [
+                f"{folder_count} folder{'s' if folder_count != 1 else ''}",
+            ]
+            if root_file_count:
+                parts.append(
+                    f"{root_file_count} root file{'s' if root_file_count != 1 else ''}"
+                )
+            self._set_status(
+                f"Imported {', '.join(parts)} ({mode}).",
+                "success",
+                update=True,
+            )
+
+        dialog = create_import_tree_dialog(
+            on_import_callback=on_import,
+            on_close_callback=close_dialog,
+            is_dark_mode=self.state.is_dark_mode,
+        )
+        self.state.active_dialog = close_dialog
+        self.page.show_dialog(dialog)
+
+    async def on_clear_folders(self, e: ft.ControlEvent) -> None:
+        """Handle Clear Folders button click. Confirms then clears all folders."""
+        from uv_forger.ui.dialogs import create_confirm_dialog
+
+        def close_dialog(_=None):
+            confirm_dialog.open = False
+            self.state.active_dialog = None
+            self.page.update()
+
+        def do_clear(_=None):
+            self.state.folders = []
+            self.state.file_overrides.clear()
+            self.state.folders_modified = True
+            self.state.imported_structure = False
+            self.state.root_files = []
+            close_dialog()
+            self._update_folder_display()
+            self._set_status("Folders cleared.", "info", update=True)
+
+        if not self.state.folders:
+            self._set_status("No folders to clear.", "info", update=True)
+            return
+
+        confirm_dialog = create_confirm_dialog(
+            title="Clear All Folders?",
+            message="This will remove all folders and files from the subfolders display.",
+            confirm_label="Clear",
+            on_confirm=do_clear,
+            on_cancel=close_dialog,
+            is_dark_mode=self.state.is_dark_mode,
+            confirm_icon=ft.Icons.DELETE_SWEEP,
+        )
+        self.state.active_dialog = close_dialog
+        self.page.show_dialog(confirm_dialog)

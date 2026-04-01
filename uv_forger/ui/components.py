@@ -96,6 +96,8 @@ class Controls:
         self.add_folder_button: ft.Button
         self.remove_folder_button: ft.Button
         self.edit_file_button: ft.Button
+        self.import_tree_button: ft.Button
+        self.clear_folders_button: ft.Button
         self.packages_label: ft.Text
         self.packages_container: ft.Container
         self.add_package_button: ft.Button
@@ -397,6 +399,22 @@ def create_controls(state: AppState, colors: dict) -> Controls:
         disabled=True,
     )
 
+    controls.import_tree_button = ft.Button(
+        "Import Tree...",
+        icon=ft.Icons.ACCOUNT_TREE,
+        tooltip="Paste a text tree structure to populate folders\n\n⌘T / Ctrl+T",
+        style=_split_btn_style,
+        width=UIConfig.BUTTON_WIDTH_STRUCTURE,
+    )
+
+    controls.clear_folders_button = ft.Button(
+        "Clear Folders",
+        icon=ft.Icons.DELETE_SWEEP,
+        tooltip="Remove all folders from the subfolders display",
+        style=_split_btn_style,
+        width=UIConfig.BUTTON_WIDTH_STRUCTURE,
+    )
+
     # Package management controls
     controls.packages_label = ft.Text("Packages: 0")
 
@@ -672,6 +690,12 @@ def create_sections(controls: Controls, state: AppState) -> None:
                                 controls=[
                                     controls.edit_file_button,
                                     controls.save_as_preset_button,
+                                ],
+                            ),
+                            ft.Row(
+                                controls=[
+                                    controls.import_tree_button,
+                                    controls.clear_folders_button,
                                 ],
                             ),
                         ],

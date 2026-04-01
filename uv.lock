@@ -919,6 +919,7 @@ source = { editable = "." }
 dependencies = [
     { name = "fce-enhanced" },
     { name = "flet" },
+    { name = "flet-code-editor" },
     { name = "httpx" },
     { name = "loguru" },
     { name = "platformdirs" },
@@ -939,6 +940,7 @@ dev = [
 requires-dist = [
     { name = "fce-enhanced", specifier = ">=0.1.5" },
     { name = "flet", specifier = ">=0.80.5" },
+    { name = "flet-code-editor", specifier = ">=0.82.2" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "loguru", specifier = ">=0.7.3" },
     { name = "platformdirs", specifier = ">=4.9.2" },

@@ -16,11 +16,56 @@ if TYPE_CHECKING:
     from uv_forger.core.models import BuildSummaryConfig
 
 
+def _build_root_entries(config: BuildSummaryConfig) -> tuple[list[dict | str], list]:
+    """Build the root-level entries for the tree based on structure mode.
+
+    Returns:
+        Tuple of (root_entries, app_folders) where app_folders is only
+        populated for non-imported structures.
+    """
+    if config.imported_structure:
+        # Imported structure: UV files + imported root files + all folders at root
+        uv_files = [".python-version", "README.md", "pyproject.toml"]
+        if config.git_enabled:
+            uv_files.insert(0, ".gitignore")
+
+        # Merge imported root files, deduplicating against UV files
+        uv_set = set(uv_files)
+        extra_files = [f for f in config.root_files if f not in uv_set]
+
+        root_entries: list[dict | str] = []
+        root_entries.extend(uv_files)
+        root_entries.extend(extra_files)
+        root_entries.extend(config.folders)
+        return root_entries, []
+
+    # Standard app/ layout
+    root_folders = []
+    app_folders = []
+    for folder in config.folders:
+        if isinstance(folder, dict) and folder.get("root_level", False):
+            root_folders.append(folder)
+        else:
+            app_folders.append(folder)
+
+    root_files = [".python-version", "README.md", "pyproject.toml"]
+    if config.git_enabled:
+        root_files.insert(0, ".gitignore")
+
+    root_entries = []
+    root_entries.extend(root_files)
+    root_entries.append("__app__")  # Sentinel for app/ directory
+    root_entries.extend(root_folders)
+    return root_entries, app_folders
+
+
 def build_project_tree_lines(config: BuildSummaryConfig) -> list[str]:
     """Build a Unicode box-drawing tree of the full project structure.
 
     Includes root-level files created by UV init (pyproject.toml, README.md, etc.),
     the app/ directory with __init__.py and main.py, and all template folders/files.
+    For imported structures, all folders appear at the project root instead of
+    inside app/.
 
     Args:
         config: BuildSummaryConfig with project name, git_enabled, and folders.
@@ -30,25 +75,7 @@ def build_project_tree_lines(config: BuildSummaryConfig) -> list[str]:
     """
     lines: list[str] = [f"{config.project_name}/"]
 
-    # Separate root-level and app-level template folders
-    root_folders = []
-    app_folders = []
-    for folder in config.folders:
-        if isinstance(folder, dict) and folder.get("root_level", False):
-            root_folders.append(folder)
-        else:
-            app_folders.append(folder)
-
-    # Root-level files created by UV init
-    root_files = [".python-version", "README.md", "pyproject.toml"]
-    if config.git_enabled:
-        root_files.insert(0, ".gitignore")
-
-    # All root-level entries: files first, then app/, then root template folders
-    root_entries: list[dict | str] = []
-    root_entries.extend(root_files)
-    root_entries.append("__app__")  # Sentinel for app/ directory
-    root_entries.extend(root_folders)
+    root_entries, app_folders = _build_root_entries(config)
 
     def _add_entries(
         entries: list[dict | str], prefix: str, parent_create_init: bool = True
@@ -187,24 +214,7 @@ def build_project_tree_controls(config: BuildSummaryConfig) -> list[ft.Control]:
         )
     )
 
-    # Separate root-level and app-level template folders
-    root_folders = []
-    app_folders = []
-    for folder in config.folders:
-        if isinstance(folder, dict) and folder.get("root_level", False):
-            root_folders.append(folder)
-        else:
-            app_folders.append(folder)
-
-    # Root-level files
-    root_files = [".python-version", "README.md", "pyproject.toml"]
-    if config.git_enabled:
-        root_files.insert(0, ".gitignore")
-
-    root_entries: list[dict | str] = []
-    root_entries.extend(root_files)
-    root_entries.append("__app__")
-    root_entries.extend(root_folders)
+    root_entries, app_folders = _build_root_entries(config)
 
     def _add_entries(entries: list[dict | str], prefix: str) -> None:
         for i, entry in enumerate(entries):

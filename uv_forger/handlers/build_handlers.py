@@ -200,6 +200,8 @@ class BuildHandlersMixin:
             packages=list(self.state.packages),
             dev_packages=list(self.state.dev_packages),
             file_overrides=dict(self.state.file_overrides),
+            imported_structure=self.state.imported_structure,
+            root_files=list(self.state.root_files),
             user_boilerplate_dir=get_user_templates_dir(self.state.settings)
             / "boilerplate",
             github_root=Path(self.state.settings.default_github_root),
@@ -242,6 +244,8 @@ class BuildHandlersMixin:
                 folders=config.folders,
                 packages=config.packages,
                 dev_packages=config.dev_packages,
+                imported_structure=config.imported_structure,
+                root_files=config.root_files,
             )
             add_to_history(entry)
 
@@ -293,6 +297,8 @@ class BuildHandlersMixin:
         self.state.other_project_enabled = entry.other_project_enabled
         self.state.project_type = entry.project_type
         self.state.folders = [normalize_folder(f) for f in entry.folders]
+        self.state.imported_structure = getattr(entry, "imported_structure", False)
+        self.state.root_files = list(getattr(entry, "root_files", []))
         self.state.packages = list(entry.packages)
         self.state.dev_packages = set(getattr(entry, "dev_packages", []))
 
@@ -391,6 +397,8 @@ class BuildHandlersMixin:
         self.state.other_project_enabled = preset.other_project_enabled
         self.state.project_type = preset.project_type
         self.state.folders = [normalize_folder(f) for f in preset.folders]
+        self.state.imported_structure = getattr(preset, "imported_structure", False)
+        self.state.root_files = list(getattr(preset, "root_files", []))
         self.state.packages = list(preset.packages)
         self.state.dev_packages = set(getattr(preset, "dev_packages", []))
 
@@ -499,6 +507,8 @@ class BuildHandlersMixin:
             folders=self.state.folders,
             packages=self.state.packages,
             dev_packages=list(self.state.dev_packages),
+            imported_structure=self.state.imported_structure,
+            root_files=list(self.state.root_files),
             author_name=self.state.author_name,
             author_email=self.state.author_email,
             description=self.state.description,
@@ -700,6 +710,8 @@ class BuildHandlersMixin:
         elif e.key == "S" and (e.ctrl or e.meta):
             if not self.controls.save_as_preset_button.disabled:
                 await self.on_presets_click(e)
+        elif e.key == "T" and (e.ctrl or e.meta):
+            await self.on_import_tree(e)
         elif e.key == "R" and (e.ctrl or e.meta):
             await self.on_reset(e)
         elif e.key == "/" and (e.ctrl or e.meta):

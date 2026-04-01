@@ -108,6 +108,8 @@ class ProjectConfig:
     packages: list[str] = field(default_factory=list)
     dev_packages: list[str] = field(default_factory=list)
     file_overrides: dict[str, str] = field(default_factory=dict)
+    imported_structure: bool = False
+    root_files: list[str] = field(default_factory=list)
     user_boilerplate_dir: Path | None = None
     github_root: Path | None = None
     git_remote_mode: str = "local"
@@ -224,6 +226,8 @@ class BuildSummaryConfig:
     description: str = ""
     license_type: str = ""
     file_override_count: int = 0
+    imported_structure: bool = False
+    root_files: list[str] = field(default_factory=list)
     post_build_command: str = ""
     post_build_command_enabled: bool = False
     git_remote_mode: str = "local"
@@ -264,6 +268,8 @@ class BuildSummaryConfig:
             packages=config.packages,
             dev_packages=config.dev_packages,
             folders=folders,
+            imported_structure=config.imported_structure,
+            root_files=list(config.root_files),
             author_name=config.author_name,
             author_email=config.author_email,
             description=config.description,

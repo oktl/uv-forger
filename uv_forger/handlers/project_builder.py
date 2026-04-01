@@ -14,7 +14,10 @@ from uv_forger.core.boilerplate_resolver import BoilerplateResolver
 from uv_forger.core.constants import FRAMEWORK_PACKAGE_MAP, PROJECT_TYPE_PACKAGE_MAP
 from uv_forger.core.models import BuildResult, ProjectConfig
 from uv_forger.core.validator import validate_project_name
-from uv_forger.handlers.filesystem_handler import setup_app_structure
+from uv_forger.handlers.filesystem_handler import (
+    setup_app_structure,
+    setup_imported_structure,
+)
 from uv_forger.handlers.git_handler import (
     finalize_git_setup,
     get_bare_repo_path,
@@ -125,13 +128,23 @@ def _create_project_scaffold(
     )
 
     _progress("Creating folder structure...")
-    setup_app_structure(
-        project_path,
-        config.folders,
-        resolver=resolver,
-        skip_files=not config.include_starter_files,
-        file_overrides=config.file_overrides or None,
-    )
+    if config.imported_structure:
+        setup_imported_structure(
+            project_path,
+            config.folders,
+            root_files=config.root_files or None,
+            resolver=resolver,
+            skip_files=not config.include_starter_files,
+            file_overrides=config.file_overrides or None,
+        )
+    else:
+        setup_app_structure(
+            project_path,
+            config.folders,
+            resolver=resolver,
+            skip_files=not config.include_starter_files,
+            file_overrides=config.file_overrides or None,
+        )
 
     _progress("Configuring project metadata...")
     configure_pyproject(
@@ -143,6 +156,7 @@ def _create_project_scaffold(
         author_email=config.author_email,
         description=config.description,
         license_type=config.license_type,
+        imported_structure=config.imported_structure,
     )
 
 

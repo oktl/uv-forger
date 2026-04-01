@@ -104,6 +104,8 @@ def attach_handlers(page: ft.Page, state: AppState) -> None:
     controls.remove_folder_button.on_click = wrap_async(handlers.on_remove_folder)
     controls.edit_file_button.on_click = wrap_async(handlers.on_edit_file)
     controls.save_as_preset_button.on_click = wrap_async(handlers.on_presets_click)
+    controls.import_tree_button.on_click = wrap_async(handlers.on_import_tree)
+    controls.clear_folders_button.on_click = wrap_async(handlers.on_clear_folders)
 
     # --- Package Management Handlers ---
     controls.add_package_button.on_click = wrap_async(handlers.on_add_package)

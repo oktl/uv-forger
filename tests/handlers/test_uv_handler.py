@@ -424,3 +424,58 @@ class TestConfigurePyprojectMetadata:
             assert 'description = ""' in content
             assert "authors" not in content
             assert 'license = ' not in content
+
+
+class TestConfigurePyprojectImported:
+    """Tests for configure_pyproject with imported_structure=True."""
+
+    def _uv_pyproject(self):
+        return (
+            '[project]\nname = "test"\nversion = "0.1.0"\n'
+            'description = ""\nreadme = "README.md"\n'
+            'requires-python = ">=3.13"\ndependencies = []\n'
+        )
+
+    def test_skips_hatch_config(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project_path = Path(tmpdir)
+            (project_path / "pyproject.toml").write_text(self._uv_pyproject())
+
+            configure_pyproject(
+                project_path, "myapp", imported_structure=True
+            )
+
+            content = (project_path / "pyproject.toml").read_text()
+            assert "[tool.hatch.build.targets.wheel]" not in content
+            assert 'packages = ["app"]' not in content
+
+    def test_skips_entry_point(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project_path = Path(tmpdir)
+            (project_path / "pyproject.toml").write_text(self._uv_pyproject())
+
+            configure_pyproject(
+                project_path, "myapp", framework="flet", imported_structure=True
+            )
+
+            content = (project_path / "pyproject.toml").read_text()
+            assert "[project.scripts]" not in content
+
+    def test_still_applies_metadata(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project_path = Path(tmpdir)
+            (project_path / "pyproject.toml").write_text(self._uv_pyproject())
+
+            configure_pyproject(
+                project_path,
+                "myapp",
+                author_name="Test Author",
+                description="A test project",
+                imported_structure=True,
+            )
+
+            content = (project_path / "pyproject.toml").read_text()
+            assert "Test Author" in content
+            assert "A test project" in content
+            # But no hatch config
+            assert "[tool.hatch.build.targets.wheel]" not in content

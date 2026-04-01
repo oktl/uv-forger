@@ -61,7 +61,7 @@ class UIConfig:
         350  # fits two containers + gap within SECTION_WIDTH border/padding
     )
     SUBFOLDERS_HEIGHT = 410
-    STRUCTURE_DIVIDER_HEIGHT = 540  # vertical divider between folder/package columns
+    STRUCTURE_DIVIDER_HEIGHT = 575  # vertical divider between folder/package columns
     BUTTON_WIDTH_BUILD = 300
     BUTTON_WIDTH_ACTION = 110  # Reset and Exit buttons
     BUTTON_WIDTH_STRUCTURE = (

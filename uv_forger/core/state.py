@@ -69,6 +69,8 @@ class AppState:
     # Folder management
     folders: list[str | dict[str, Any]] = field(default_factory=list)
     folders_modified: bool = False  # Set when user adds/removes/edits folders or files
+    imported_structure: bool = False  # True when folders came from Import Tree
+    root_files: list[str] = field(default_factory=list)  # Root-level files from import
 
     # Selection tracking for folder/file removal
     selected_item_path: list[int | str] | None = None

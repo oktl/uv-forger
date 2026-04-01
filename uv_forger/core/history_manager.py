@@ -48,6 +48,8 @@ class ProjectHistoryEntry:
     folders: list[str | dict[str, Any]]
     packages: list[str]
     dev_packages: list[str] = field(default_factory=list)
+    imported_structure: bool = False
+    root_files: list[str] = field(default_factory=list)
     built_at: str = ""
 
 
@@ -144,6 +146,8 @@ def make_history_entry(
     folders: list,
     packages: list[str],
     dev_packages: list[str] | None = None,
+    imported_structure: bool = False,
+    root_files: list[str] | None = None,
 ) -> ProjectHistoryEntry:
     """Create a ProjectHistoryEntry with the current timestamp.
 
@@ -160,6 +164,8 @@ def make_history_entry(
         folders: Folder structure at build time.
         packages: Packages installed at build time.
         dev_packages: Packages marked as dev dependencies at build time.
+        imported_structure: Whether this used an imported tree structure.
+        root_files: Root-level files from imported tree structure.
 
     Returns:
         A new ProjectHistoryEntry with built_at set to now.
@@ -177,5 +183,7 @@ def make_history_entry(
         folders=list(folders),
         packages=list(packages),
         dev_packages=list(dev_packages) if dev_packages else [],
+        imported_structure=imported_structure,
+        root_files=list(root_files) if root_files else [],
         built_at=datetime.datetime.now(datetime.UTC).isoformat(),
     )

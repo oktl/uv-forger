@@ -173,12 +173,16 @@ def configure_pyproject(
     author_email: str = "",
     description: str = "",
     license_type: str = "",
+    imported_structure: bool = False,
 ) -> None:
     """Update pyproject.toml with package, entry point, and metadata configuration.
 
     Appends hatch build configuration and, when appropriate, a project
     scripts entry point to the existing pyproject.toml file. Also modifies
     the [project] section to set authors, description, and license when provided.
+
+    When imported_structure is True, skips hatch build config and entry point
+    since the imported project defines its own layout.
 
     Args:
         project_path: Path to the project directory.
@@ -189,6 +193,7 @@ def configure_pyproject(
         author_email: Author email for pyproject.toml authors field.
         description: Project description for pyproject.toml.
         license_type: SPDX license identifier for pyproject.toml.
+        imported_structure: If True, skip hatch/scripts config (imported layout).
     """
     pyproject_file = project_path / "pyproject.toml"
 
@@ -199,6 +204,10 @@ def configure_pyproject(
             content, author_name, author_email, description, license_type
         )
         pyproject_file.write_text(content, encoding="utf-8")
+
+    # Skip hatch build config and entry point for imported structures
+    if imported_structure:
+        return
 
     # Append hatch build config and entry point
     entry_point = _resolve_entry_point(framework, project_type)

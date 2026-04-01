@@ -25,6 +25,7 @@ classifiers = [
 dependencies = [
     "fce-enhanced>=0.1.5",
     "flet>=0.80.5",
+    "flet-code-editor>=0.82.2",
     "httpx>=0.28.1",
     "loguru>=0.7.3",
     "platformdirs>=4.9.2",

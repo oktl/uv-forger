@@ -51,6 +51,8 @@ class ProjectPreset:
     folders: list[str | dict[str, Any]]
     packages: list[str]
     dev_packages: list[str] = field(default_factory=list)
+    imported_structure: bool = False
+    root_files: list[str] = field(default_factory=list)
     author_name: str = ""
     author_email: str = ""
     description: str = ""
@@ -361,6 +363,8 @@ def make_preset(
     folders: list,
     packages: list[str],
     dev_packages: list[str] | None = None,
+    imported_structure: bool = False,
+    root_files: list[str] | None = None,
     author_name: str = "",
     author_email: str = "",
     description: str = "",
@@ -380,6 +384,8 @@ def make_preset(
         folders: Folder structure.
         packages: Packages to install.
         dev_packages: Packages marked as dev dependencies.
+        imported_structure: Whether this used an imported tree structure.
+        root_files: Root-level files from imported tree structure.
         author_name: Default author name.
         author_email: Default author email.
         description: Project description.
@@ -400,6 +406,8 @@ def make_preset(
         folders=list(folders),
         packages=list(packages),
         dev_packages=list(dev_packages) if dev_packages else [],
+        imported_structure=imported_structure,
+        root_files=list(root_files) if root_files else [],
         author_name=author_name,
         author_email=author_email,
         description=description,

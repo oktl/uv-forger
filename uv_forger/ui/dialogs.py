@@ -2986,3 +2986,243 @@ def create_file_editor_view(
     # Expose the editor on the view so handlers can access it for keyboard shortcuts.
     view.editor = editor
     return view
+
+
+def create_import_tree_dialog(
+    on_import_callback,
+    on_close_callback,
+    is_dark_mode: bool,
+) -> ft.AlertDialog:
+    """Create dialog for importing a text tree structure into App Subfolders.
+
+    Users paste a tree structure (box-drawing or plain indented) and the parser
+    converts it into folder/file dicts. Supports Replace or Merge modes.
+
+    Args:
+        on_import_callback: Callback(folders: list[dict], root_files: list[str],
+            mode: str) called with parsed folder dicts, root-level files,
+            and "replace" or "merge".
+        on_close_callback: Callback when Cancel is clicked.
+        is_dark_mode: Whether dark mode is active.
+
+    Returns:
+        Configured AlertDialog for importing tree structures.
+    """
+    from uv_forger.core.tree_parser import parse_tree_text_full
+
+    colors = get_theme_colors(is_dark_mode)
+
+    warning_text = ft.Text(
+        value="",
+        color=UIConfig.COLOR_WARNING,
+        size=13,
+        visible=False,
+        weight=ft.FontWeight.W_500,
+    )
+
+    preview_text = ft.Text(
+        value="",
+        size=13,
+        visible=False,
+        weight=ft.FontWeight.W_500,
+    )
+
+    tree_field = ft.TextField(
+        label="Tree structure",
+        hint_text=(
+            "Paste a project tree here, e.g.:\n"
+            "├── core/\n"
+            "│   ├── __init__.py\n"
+            "│   └── state.py\n"
+            "├── ui/\n"
+            "│   └── components.py\n"
+            "└── utils/"
+        ),
+        multiline=True,
+        min_lines=10,
+        max_lines=16,
+        width=480,
+        autofocus=True,
+        text_style=ft.TextStyle(font_family="monospace"),
+    )
+
+    mode_radio = ft.RadioGroup(
+        value="replace",
+        content=ft.Row(
+            [
+                ft.Radio(value="replace", label="Replace current folders"),
+                ft.Radio(value="merge", label="Merge with current"),
+            ],
+            spacing=16,
+        ),
+    )
+
+    # State for parsed result (mutable containers for closure)
+    parsed_result: list[list[dict]] = [[]]  # folders
+    parsed_root_files: list[list[str]] = [[]]  # root-level files
+
+    def _count_recursive(folders: list[dict]) -> tuple[int, int]:
+        """Count total folders and files recursively."""
+        folder_count = 0
+        file_count = 0
+        for f in folders:
+            folder_count += 1
+            file_count += len(f.get("files", []))
+            if f.get("create_init"):
+                file_count += 1
+            sub = f.get("subfolders", [])
+            if sub:
+                sf, sfi = _count_recursive(sub)
+                folder_count += sf
+                file_count += sfi
+        return folder_count, file_count
+
+    def on_preview_click(e):
+        raw = tree_field.value or ""
+        if not raw.strip():
+            warning_text.value = "Paste a tree structure first."
+            warning_text.visible = True
+            preview_text.visible = False
+            import_button.disabled = True
+            e.page.update()
+            return
+
+        try:
+            result = parse_tree_text_full(raw)
+        except Exception as exc:
+            warning_text.value = f"Parse error: {exc}"
+            warning_text.visible = True
+            preview_text.visible = False
+            import_button.disabled = True
+            e.page.update()
+            return
+
+        if not result.folders and not result.root_files:
+            warning_text.value = (
+                "No folders found. Ensure folders have a trailing / "
+                "and the structure is indented correctly."
+            )
+            warning_text.visible = True
+            preview_text.visible = False
+            import_button.disabled = True
+            e.page.update()
+            return
+
+        parsed_result[0] = result.folders
+        parsed_root_files[0] = result.root_files
+        folder_count, file_count = _count_recursive(result.folders)
+        top_names = ", ".join(f["name"] for f in result.folders[:5])
+        if len(result.folders) > 5:
+            top_names += f", ... (+{len(result.folders) - 5} more)"
+
+        root_file_info = ""
+        if result.root_files:
+            root_file_info = (
+                f", {len(result.root_files)} root file"
+                f"{'s' if len(result.root_files) != 1 else ''}"
+            )
+
+        preview_text.value = (
+            f"Parsed: {folder_count} folder{'s' if folder_count != 1 else ''}, "
+            f"{file_count} file{'s' if file_count != 1 else ''}"
+            f"{root_file_info}\n"
+            f"Top-level: {top_names}"
+        )
+        preview_text.color = UIConfig.COLOR_SUCCESS
+        preview_text.visible = True
+        warning_text.visible = False
+        import_button.disabled = False
+        e.page.update()
+
+    def on_import_click(e):
+        if not parsed_result[0] and not parsed_root_files[0]:
+            warning_text.value = "Click Preview first to parse the tree."
+            warning_text.visible = True
+            e.page.update()
+            return
+        on_import_callback(parsed_result[0], parsed_root_files[0], mode_radio.value)
+
+    import_button = ft.FilledButton(
+        "Import",
+        icon=ft.Icons.DOWNLOAD,
+        on_click=on_import_click,
+        disabled=True,
+        style=ft.ButtonStyle(
+            bgcolor={
+                ft.ControlState.DEFAULT: ft.Colors.BLUE_600,
+                ft.ControlState.FOCUSED: ft.Colors.BLUE_400,
+                ft.ControlState.HOVERED: ft.Colors.BLUE_500,
+                ft.ControlState.PRESSED: ft.Colors.BLUE_700,
+                ft.ControlState.DISABLED: ft.Colors.GREY_700,
+            },
+            side={
+                ft.ControlState.DEFAULT: ft.BorderSide(0, ft.Colors.TRANSPARENT),
+                ft.ControlState.FOCUSED: ft.BorderSide(2, ft.Colors.WHITE),
+            },
+        ),
+    )
+
+    cancel_bg_focused = ft.Colors.GREY_700 if is_dark_mode else ft.Colors.GREY_300
+    cancel_button = ft.OutlinedButton(
+        "Cancel",
+        on_click=on_close_callback,
+        style=ft.ButtonStyle(
+            bgcolor={
+                ft.ControlState.DEFAULT: ft.Colors.TRANSPARENT,
+                ft.ControlState.FOCUSED: cancel_bg_focused,
+            },
+            side={
+                ft.ControlState.DEFAULT: ft.BorderSide(1, ft.Colors.GREY_600),
+                ft.ControlState.FOCUSED: ft.BorderSide(2, ft.Colors.WHITE),
+            },
+        ),
+    )
+
+    preview_button = ft.Button(
+        "Preview",
+        icon=ft.Icons.VISIBILITY,
+        on_click=on_preview_click,
+    )
+
+    dialog = ft.AlertDialog(
+        modal=True,
+        title=_create_dialog_title(
+            "Import Tree Structure", colors, icon=ft.Icons.ACCOUNT_TREE
+        ),
+        content=ft.Container(
+            content=ft.Column(
+                [
+                    ft.Text(
+                        "Paste a text tree structure below "
+                        "(tree command output, README snippet, etc.).\n"
+                        "Folders must end with /. "
+                        "__init__.py entries set create_init on the parent.",
+                        size=13,
+                        color=colors.get("section_title"),
+                    ),
+                    ft.Container(height=4),
+                    tree_field,
+                    ft.Row([preview_button], spacing=8),
+                    mode_radio,
+                    warning_text,
+                    preview_text,
+                ],
+                tight=True,
+                spacing=8,
+            ),
+            width=520,
+            padding=UIConfig.DIALOG_CONTENT_PADDING,
+        ),
+        actions=[import_button, cancel_button],
+        actions_alignment=ft.MainAxisAlignment.END,
+    )
+
+    # Expose for testing
+    dialog.tree_field = tree_field
+    dialog.mode_radio = mode_radio
+    dialog.preview_button = preview_button
+    dialog.import_button = import_button
+    dialog.warning_text = warning_text
+    dialog.preview_text = preview_text
+
+    return dialog

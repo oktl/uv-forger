@@ -6,6 +6,7 @@ from pathlib import Path
 from uv_forger.handlers.filesystem_handler import (
     create_folders,
     setup_app_structure,
+    setup_imported_structure,
 )
 
 
@@ -386,3 +387,125 @@ class TestCreateFoldersWithResolver:
 
             readme = project_path / "README.md"
             assert readme.read_text() == ""
+
+
+class TestSetupImportedStructure:
+    """Tests for setup_imported_structure — imported tree builds at project root."""
+
+    def test_no_app_directory_created(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project = Path(tmpdir) / "project"
+            project.mkdir()
+            setup_imported_structure(project, [{"name": "src", "create_init": False}])
+            assert not (project / "app").exists()
+            assert (project / "src").exists()
+
+    def test_folders_created_at_root(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project = Path(tmpdir) / "project"
+            project.mkdir()
+            folders = [
+                {"name": "docs", "create_init": False, "files": ["index.md"]},
+                {"name": "src", "create_init": False, "subfolders": [
+                    {"name": "mylib", "create_init": True, "files": ["app.py"]}
+                ]},
+                {"name": "tests", "create_init": False, "files": ["test_main.py"]},
+            ]
+            setup_imported_structure(project, folders)
+
+            assert (project / "docs").is_dir()
+            assert (project / "docs" / "index.md").exists()
+            assert (project / "src" / "mylib").is_dir()
+            assert (project / "src" / "mylib" / "__init__.py").exists()
+            assert (project / "src" / "mylib" / "app.py").exists()
+            assert (project / "tests" / "test_main.py").exists()
+
+    def test_uv_main_py_deleted(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project = Path(tmpdir) / "project"
+            project.mkdir()
+            (project / "main.py").write_text('print("hello")')
+            setup_imported_structure(project, [{"name": "src"}])
+            assert not (project / "main.py").exists()
+
+    def test_root_files_created(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project = Path(tmpdir) / "project"
+            project.mkdir()
+            root_files = ["CHANGELOG.md", "LICENSE", "CONTRIBUTING.md"]
+            setup_imported_structure(project, [], root_files=root_files)
+
+            for f in root_files:
+                assert (project / f).exists()
+
+    def test_uv_generated_files_skipped_without_override(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project = Path(tmpdir) / "project"
+            project.mkdir()
+            # Simulate UV-generated files
+            (project / "pyproject.toml").write_text("[project]")
+            (project / "README.md").write_text("# readme")
+
+            root_files = ["pyproject.toml", "README.md", ".gitignore", "LICENSE"]
+            setup_imported_structure(project, [], root_files=root_files)
+
+            # UV files should NOT be overwritten when no override
+            assert (project / "pyproject.toml").read_text() == "[project]"
+            assert (project / "README.md").read_text() == "# readme"
+            # Non-UV files should be created
+            assert (project / "LICENSE").exists()
+
+    def test_uv_generated_files_overridden_with_user_content(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project = Path(tmpdir) / "project"
+            project.mkdir()
+            # Simulate UV-generated files
+            (project / "pyproject.toml").write_text("[project]\nname = 'auto'")
+            (project / "README.md").write_text("# Auto readme")
+
+            overrides = {
+                "pyproject.toml": '[project]\nname = "custom"',
+                "README.md": "# Custom Readme\n\nMy project.",
+            }
+            root_files = ["pyproject.toml", "README.md", "LICENSE"]
+            setup_imported_structure(
+                project, [], root_files=root_files, file_overrides=overrides
+            )
+
+            # UV files with overrides should be replaced
+            assert (project / "pyproject.toml").read_text() == '[project]\nname = "custom"'
+            assert (project / "README.md").read_text() == "# Custom Readme\n\nMy project."
+            # Non-UV files without overrides still created
+            assert (project / "LICENSE").exists()
+
+    def test_file_overrides_for_root_files(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project = Path(tmpdir) / "project"
+            project.mkdir()
+            overrides = {"LICENSE": "MIT License\nCopyright 2024"}
+            setup_imported_structure(
+                project, [], root_files=["LICENSE"], file_overrides=overrides
+            )
+            assert (project / "LICENSE").read_text() == "MIT License\nCopyright 2024"
+
+    def test_file_overrides_for_folder_files(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project = Path(tmpdir) / "project"
+            project.mkdir()
+            folders = [{"name": "src", "create_init": False, "files": ["app.py"]}]
+            overrides = {"src/app.py": "# my app code"}
+            setup_imported_structure(project, folders, file_overrides=overrides)
+            assert (project / "src" / "app.py").read_text() == "# my app code"
+
+    def test_skip_files_mode(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project = Path(tmpdir) / "project"
+            project.mkdir()
+            folders = [{"name": "src", "files": ["app.py"]}]
+            setup_imported_structure(
+                project, folders, root_files=["LICENSE"], skip_files=True
+            )
+            # Directories created, but files skipped
+            assert (project / "src").is_dir()
+            assert not (project / "src" / "app.py").exists()
+            assert not (project / "LICENSE").exists()

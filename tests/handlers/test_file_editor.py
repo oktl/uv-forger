@@ -175,6 +175,38 @@ class TestGetCanonicalFilePath:
         assert get_canonical_file_path(folders, [0, "files", 1]) == "core/b.py"
         assert get_canonical_file_path(folders, [0, "files", 2]) == "core/c.py"
 
+    def test_root_files_path(self):
+        folders = []
+        root_files = ["README.md", "LICENSE", "CHANGELOG.md"]
+        result = get_canonical_file_path(
+            folders, ["root_files", 0], root_files=root_files
+        )
+        assert result == "README.md"
+
+    def test_root_files_path_second_item(self):
+        root_files = ["README.md", "LICENSE", "CHANGELOG.md"]
+        result = get_canonical_file_path(
+            [], ["root_files", 2], root_files=root_files
+        )
+        assert result == "CHANGELOG.md"
+
+    def test_root_files_path_out_of_range(self):
+        root_files = ["README.md"]
+        result = get_canonical_file_path(
+            [], ["root_files", 5], root_files=root_files
+        )
+        assert result is None
+
+    def test_root_files_path_without_root_files_param(self):
+        result = get_canonical_file_path([], ["root_files", 0])
+        assert result is None
+
+    def test_root_files_path_with_empty_list(self):
+        result = get_canonical_file_path(
+            [], ["root_files", 0], root_files=[]
+        )
+        assert result is None
+
 
 # ---- file_overrides in state tests ----
 
