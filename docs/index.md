@@ -16,6 +16,7 @@ Setting up a new Python project means repeating the same steps every time: creat
 - **21 project types** — Django, FastAPI, Flask, data science, ML, CLI tools, REST/GraphQL/gRPC APIs, web scraping, and more
 - **Template merging** — Select both a UI framework *and* a project type; their folder structures merge intelligently
 - **Smart scaffolding** — Key files come pre-populated with starter code, not empty
+- **Import tree structure** — Paste a text tree (box-drawing or indented) to define a complete project layout with root-level files, editable before build
 - **File editor** — Preview, edit, and import file content before building with a full-featured code editor
 - **User templates** — Save custom boilerplate that persists across sessions and overrides built-in content
 - **PyPI name checker** — Verify your package name is available before you build

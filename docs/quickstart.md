@@ -54,6 +54,7 @@ Each selection auto-loads a folder structure and package list. You can customize
 
 The **Folders & Files** section shows what will be created. You can:
 
+- **Import tree structure** — Click **Import Tree** to paste a text tree (box-drawing or indented format, e.g., from a GitHub README or `tree` command) and define a complete project layout. Root-level files like `LICENSE` and `CHANGELOG.md` appear in the display and can be edited — even UV-generated files like `pyproject.toml` can be overridden with custom content
 - **Add** custom folders or files at any level — when adding a file, click **Browse...** to import an existing file from disk in one step; when adding a folder, click **Import from Disk...** to import an entire directory tree with its file contents
 - **Import folders** — Right-click any folder in the tree and choose **Import Folder from Disk...** to add an existing directory as a subfolder
 - **Remove** items you don't need

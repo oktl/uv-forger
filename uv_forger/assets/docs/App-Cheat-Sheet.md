@@ -96,6 +96,17 @@ Import an existing folder via the Add Folder/File dialog:
 
 Folder import scans up to 5 levels deep and 50 files. Skips hidden dirs, `.git`, `__pycache__`, `node_modules`, `.venv`, and binary files. A summary shows folders/files/skipped counts.
 
+**Import Tree Structure** — paste a text tree to define a complete project layout:
+
+| Action | What it does |
+| --- | --- |
+| Import Tree (button) | Paste a box-drawing or indented text tree to define project structure |
+| Preview | Parse and show folder/file/root-file counts before importing |
+| Replace mode | Replace current folder structure entirely |
+| Merge mode | Combine imported structure with existing folders |
+
+Root-level files (e.g., LICENSE, CHANGELOG.md) appear in the main display and can be edited. UV-generated files (pyproject.toml, README.md, etc.) can be overridden with custom content. `__init__.py` entries auto-convert to `create_init` flags.
+
 Files with custom content show a **✎** pencil indicator.
 
 **Editor shortcuts:**

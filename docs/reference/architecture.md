@@ -25,6 +25,7 @@ Core logic with no UI dependencies.
 | **`settings_manager.py`** | `AppSettings` load/save to platformdirs JSON        |
 | **`history_manager.py`**  | Recent projects history (capped at 5)               |
 | **`preset_manager.py`**   | Named configuration presets (user + built-in)       |
+| **`tree_parser.py`**      | Parse box-drawing and indented text trees into `FolderSpec` structures |
 | **`logging_config.py`**   | Loguru setup: console + file handlers with rotation |
 
 ### handlers/
@@ -93,6 +94,10 @@ Templates load through a 3-step fallback:
 3. Hardcoded `DEFAULT_FOLDERS` in `constants.py`
 
 When both a UI framework and project type are selected, both templates are loaded and merged via `merge_folder_lists()` — folders matched by name are merged recursively, unmatched folders are included from both sides. The single entry point for all template loading is `_reload_and_merge_templates()` in `option_handlers.py`.
+
+### Imported Tree Structures
+
+When a user imports a tree structure (via the Import Tree button), `parse_tree_text_full()` in `tree_parser.py` returns a `TreeParseResult` containing both folders and root-level files. Root files are stored in `state.root_files` (separate from `state.folders`) and use navigation paths like `["root_files", idx]` for selection and editing. `get_canonical_file_path()` in `folder_handlers.py` resolves these paths for the file override system. During build, `setup_imported_structure()` creates folders at the project root (no `app/` wrapper) and writes root files — UV-generated files are only skipped if the user hasn't edited them.
 
 ### Build Pipeline
 

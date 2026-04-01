@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0]
+
+### Added
+
+- Import tree structure from text — paste a box-drawing or indented text tree to define a complete
+  project layout (folders, subfolders, files, and root-level files)
+- Import dialog with live preview showing parsed folder/file/root-file counts
+- Replace or Merge import modes — replace current structure entirely or merge with existing folders
+- Root-level files from imported trees displayed individually in the main window folder display
+  (selectable, editable, deletable)
+- Root file content editing — edit imported root files (including UV-generated files like
+  pyproject.toml, README.md) before build; edited content overrides UV defaults
+- Imported structure builds at project root without app/ wrapper — all folders created directly at
+  the project root level
+- Tree parser handles `__init__.py` → `create_init: True` conversion, root wrapper stripping,
+  deeply nested structures, and both box-drawing and plain indentation formats
+- Imported structure state persisted in project history and presets
+- `uv.lock` added to UV-generated files skip set to prevent empty lockfile parse errors
+- 71 new tests for tree parser, canonical path resolution, and filesystem handler — 776 total
+
 ## [0.3.5]
 
 ### Changed
@@ -124,6 +144,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Colour-coded log viewer with clickable source locations
 - Dark and light theme toggle
 
+[0.4.0]: https://github.com/oktl/uv-forger/releases/tag/v0.4.0
 [0.3.5]: https://github.com/oktl/uv-forger/releases/tag/v0.3.5
 [0.3.4]: https://github.com/oktl/uv-forger/releases/tag/v0.3.4
 [0.3.3]: https://github.com/oktl/uv-forger/releases/tag/v0.3.3

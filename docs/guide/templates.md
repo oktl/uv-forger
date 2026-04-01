@@ -104,6 +104,63 @@ Boilerplate files can use `{{project_name}}` as a placeholder. At build time, it
 
 User templates are stored in the platform data directory by default (e.g., `~/.config/UV Forger/templates/boilerplate/` on Linux) or at a custom path configured in [Settings](settings.md).
 
+## Import tree structure
+
+Instead of building a folder structure from templates, you can paste a text tree to define a complete project layout. Click the **Import Tree** button in the Folders section toolbar.
+
+### Supported formats
+
+- **Box-drawing trees** — the `├──`, `└──`, `│` format from `tree` command output or GitHub READMEs
+- **Plain indentation** — spaces or tabs to indicate nesting
+
+### Example
+
+```
+my-project/
+├── .gitignore
+├── pyproject.toml
+├── README.md
+├── LICENSE
+├── CHANGELOG.md
+├── docs/
+│   ├── index.md
+│   └── usage.md
+├── src/
+│   └── my_project/
+│       ├── __init__.py
+│       └── app.py
+└── tests/
+    └── test_app.py
+```
+
+### How it works
+
+1. Paste your tree text into the import dialog
+2. Click **Preview** to see parsed results (folder count, file count, root file count)
+3. Choose **Replace** (replaces current structure) or **Merge** (combines with existing folders)
+4. Click **Import** to apply
+
+### Root-level files
+
+Files at the top level of the imported tree (e.g., `LICENSE`, `CHANGELOG.md`, `pyproject.toml`) are displayed individually in the main window folder display — before the folders. They can be selected, edited, and deleted just like files inside folders.
+
+### Overriding UV-generated files
+
+UV normally creates `pyproject.toml`, `README.md`, `.gitignore`, `.python-version`, and `main.py` during `uv init`. When you import a tree that includes these files, they appear in the display but are left as-is during build by default. However, if you **edit their content** (via right-click → Edit Content), your custom content replaces what UV generated — so you can fully customize your `pyproject.toml` or `README.md` before the project is created.
+
+`uv.lock` is also recognized as a UV-generated file and will not be created as an empty file.
+
+### Smart parsing
+
+- Root wrapper folders (e.g., `my-project/`) are automatically stripped
+- `__init__.py` entries are converted to `create_init` flags on their parent folders
+- Files are deduplicated automatically
+- Imported structure state is persisted in project history and presets
+
+### Imported vs standard structure
+
+When a tree is imported, the project is built with a **flat root layout** — all folders are created directly at the project root, with no `app/` wrapper directory. This matches the imported tree exactly.
+
 ## File content editing
 
 Right-click any file in the folder tree to open a context menu with four actions:

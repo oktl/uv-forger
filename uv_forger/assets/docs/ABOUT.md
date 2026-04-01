@@ -1,6 +1,6 @@
 # UV Forger
 
-**Version 0.2.0**
+**Version 0.4.0**
 
 A desktop application for creating Python projects with UV — the fast Python package manager. Provides template-based folder structures, framework/package installation, git initialization, and Python version selection.
 
@@ -38,6 +38,7 @@ A desktop application for creating Python projects with UV — the fast Python p
 - **Log Viewer** — Colour-coded log display with clickable source locations that open in your IDE
 - **Theme Support** — Toggle between dark and light mode
 - **Build Progress** — Determinate progress bar with step counter during builds
+- **Import Tree Structure** — Paste a text tree to define a complete project layout with root-level files, editable before build
 - **Error Handling** — Rollback and cleanup on build failure
 
 ---

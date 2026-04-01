@@ -140,7 +140,55 @@ You can customize the structure by:
 
 Any custom folders or files you add here are included when you save a preset — so you can build a tailored structure once and reuse it across projects.
 
-### 8. **File & Folder Content Editing**
+### 8. **Import Tree Structure**
+
+Click the **Import Tree** button in the Folders section to import a complete project structure from text. This lets you paste a tree representation (e.g., from a GitHub README or `tree` command output) and have it define your project layout.
+
+**Supported formats:**
+
+- **Box-drawing trees** — the standard `├──`, `└──`, `│` format from `tree` command output
+- **Plain indentation** — spaces or tabs to indicate nesting
+
+**Example input:**
+
+```
+my-project/
+├── .gitignore
+├── pyproject.toml
+├── README.md
+├── LICENSE
+├── docs/
+│   ├── index.md
+│   └── usage.md
+├── src/
+│   └── my_lib/
+│       ├── __init__.py
+│       └── app.py
+└── tests/
+    └── test_app.py
+```
+
+**How it works:**
+
+1. Paste your tree text into the import dialog
+2. Click **Preview** to see parsed results (folder count, file count, root file count)
+3. Choose **Replace** (replaces current structure) or **Merge** (combines with existing folders)
+4. Click **Import** to apply
+
+**Root-level files** (like `.gitignore`, `pyproject.toml`, `README.md`, `LICENSE`) appear individually in the main window folder display and can be selected, edited, and deleted just like files inside folders.
+
+**Editing UV-generated files:** When you import a tree that includes files UV normally creates (pyproject.toml, README.md, .gitignore, etc.), you can edit their content before building. Your edited content will override what UV generates — so you can customize your pyproject.toml or README.md before the project is even created.
+
+**Smart parsing:**
+
+- Root wrapper folders (e.g., `my-project/`) are automatically stripped
+- `__init__.py` entries are converted to `create_init` flags on their parent folders
+- Files are deduplicated automatically
+- `uv.lock` is recognized as a UV-generated file and won't be created as an empty file
+
+Imported structure state is preserved when saving to presets or project history.
+
+### 9. **File & Folder Content Editing**
 
 Right-click any file in the folder tree to open a context menu with these actions:
 
@@ -198,7 +246,7 @@ When you save from the editor (`⌘S`), content is persisted to a user templates
 
 You can set a custom templates path in Settings.
 
-### 9. **Build Project**
+### 10. **Build Project**
 
 Click "Build Project" to create your project with all configured settings. A **progress bar** with step counter (e.g., "3/7") tracks each stage of the pipeline in real time. The builder will:
 
