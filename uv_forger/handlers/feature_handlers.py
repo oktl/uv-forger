@@ -61,82 +61,73 @@ class FeatureHandlersMixin:
         self.page.bottom_appbar.bgcolor = colors["bottom_bar"]
         self.page.update()
 
-    async def on_help_click(self, e: ft.ControlEvent) -> None:
-        """Handle Help button click."""
+    async def _open_markdown_dialog(
+        self,
+        doc_file: Path,
+        fallback_content: str,
+        error_prefix: str,
+        dialog_factory,
+        link_targets: dict[str, str],
+    ) -> None:
+        """Open a markdown-content dialog with internal-link routing.
+
+        Args:
+            doc_file: Path to the markdown file to display.
+            fallback_content: Content shown when the file cannot be read.
+            error_prefix: Prefix for the status error message on read failure.
+            dialog_factory: Callable that builds the dialog (content, close_fn, page, dark_mode, on_internal_link).
+            link_targets: Maps app:// path strings to handler method names on self.
+        """
         try:
-            help_text = HELP_FILE.read_text(encoding="utf-8")
-        except (FileNotFoundError, OSError) as e:
-            help_text = """# UV Forger Help
-
-**Error**: Could not load help file.
-
-This application helps you create new Python projects using UV.
-
-For more information, visit: https://docs.astral.sh/uv/
-"""
-            self._set_status(
-                f"Warning: Help file not found ({e})", "error", update=False
-            )
+            content = doc_file.read_text(encoding="utf-8")
+        except (FileNotFoundError, OSError) as exc:
+            content = fallback_content
+            self._set_status(f"{error_prefix} ({exc})", "error", update=False)
 
         def close_dialog(_=None):
-            help_dialog.open = False
+            dialog.open = False
             self.state.active_dialog = None
             self.page.update()
 
         def handle_internal_link(path: str) -> None:
             close_dialog()
-            if path == "about":
-                asyncio.create_task(self.on_about_click(None))
-            elif path == "app-cheat-sheet":
-                asyncio.create_task(self.on_app_cheat_sheet_click(None))
+            handler_name = link_targets.get(path)
+            if handler_name:
+                asyncio.create_task(getattr(self, handler_name)(None))
 
-        help_dialog = create_help_dialog(
-            help_text,
-            close_dialog,
-            self.page,
-            self.state.is_dark_mode,
-            on_internal_link=handle_internal_link,
-        )
-
-        self.page.overlay.append(help_dialog)
-        help_dialog.open = True
-        self.state.active_dialog = close_dialog
-        self.page.update()
-
-    async def on_app_cheat_sheet_click(self, e: ft.ControlEvent) -> None:
-        """Handle App Cheat Sheet button click."""
-        try:
-            content = APP_CHEAT_SHEET_FILE.read_text(encoding="utf-8")
-        except (FileNotFoundError, OSError) as e:
-            content = "# App Cheat Sheet\n\nError: Could not load cheat sheet file."
-            self._set_status(
-                f"Warning: Cheat sheet file not found ({e})", "error", update=False
-            )
-
-        def close_dialog(_=None):
-            app_cheat_sheet_dialog.open = False
-            self.state.active_dialog = None
-            self.page.update()
-
-        def handle_internal_link(path: str) -> None:
-            close_dialog()
-            if path == "help":
-                asyncio.create_task(self.on_help_click(None))
-            elif path == "about":
-                asyncio.create_task(self.on_about_click(None))
-
-        app_cheat_sheet_dialog = create_app_cheat_sheet_dialog(
+        dialog = dialog_factory(
             content,
             close_dialog,
             self.page,
             self.state.is_dark_mode,
             on_internal_link=handle_internal_link,
         )
-
-        self.page.overlay.append(app_cheat_sheet_dialog)
-        app_cheat_sheet_dialog.open = True
+        self.page.overlay.append(dialog)
+        dialog.open = True
         self.state.active_dialog = close_dialog
         self.page.update()
+
+    async def on_help_click(self, e: ft.ControlEvent) -> None:
+        """Handle Help button click."""
+        await self._open_markdown_dialog(
+            HELP_FILE,
+            "# UV Forger Help\n\n**Error**: Could not load help file.\n\n"
+            "This application helps you create new Python projects using UV.\n\n"
+            "For more information, visit: https://docs.astral.sh/uv/\n",
+            "Warning: Help file not found",
+            create_help_dialog,
+            {"about": "on_about_click", "app-cheat-sheet": "on_app_cheat_sheet_click"},
+        )
+
+    async def on_app_cheat_sheet_click(self, e: ft.ControlEvent) -> None:
+        """Handle App Cheat Sheet button click."""
+        await self._open_markdown_dialog(
+            APP_CHEAT_SHEET_FILE,
+            "# App Cheat Sheet\n\nError: Could not load cheat sheet file.",
+            "Warning: Cheat sheet file not found",
+            create_app_cheat_sheet_dialog,
+            {"help": "on_help_click", "about": "on_about_click"},
+        )
 
     async def on_about_click(self, e: ft.ControlEvent) -> None:
         """Handle About button click.
@@ -144,38 +135,13 @@ For more information, visit: https://docs.astral.sh/uv/
         Internal links (app://help, app://app-cheat-sheet) close the About
         dialog and open the corresponding dialog directly.
         """
-        try:
-            content = ABOUT_FILE.read_text(encoding="utf-8")
-        except (FileNotFoundError, OSError) as e:
-            content = "# UV Forger\n\nError: Could not load about file."
-            self._set_status(
-                f"Warning: About file not found ({e})", "error", update=False
-            )
-
-        def close_dialog(_=None):
-            about_dialog.open = False
-            self.state.active_dialog = None
-            self.page.update()
-
-        def handle_internal_link(path: str) -> None:
-            close_dialog()
-            if path == "help":
-                asyncio.create_task(self.on_help_click(None))
-            elif path == "app-cheat-sheet":
-                asyncio.create_task(self.on_app_cheat_sheet_click(None))
-
-        about_dialog = create_about_dialog(
-            content,
-            close_dialog,
-            self.page,
-            self.state.is_dark_mode,
-            on_internal_link=handle_internal_link,
+        await self._open_markdown_dialog(
+            ABOUT_FILE,
+            "# UV Forger\n\nError: Could not load about file.",
+            "Warning: About file not found",
+            create_about_dialog,
+            {"help": "on_help_click", "app-cheat-sheet": "on_app_cheat_sheet_click"},
         )
-
-        self.page.overlay.append(about_dialog)
-        about_dialog.open = True
-        self.state.active_dialog = close_dialog
-        self.page.update()
 
     # URL schemes for IDEs that support file:line navigation.
     # More reliable than CLI commands which may not be on PATH.

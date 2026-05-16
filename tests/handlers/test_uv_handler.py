@@ -41,7 +41,10 @@ class TestGetUvPath:
 
     def test_raises_error_when_not_found(self):
         """Test FileNotFoundError when uv not found"""
-        with patch("shutil.which", return_value=None), patch("pathlib.Path.exists", return_value=False):
+        with (
+            patch("shutil.which", return_value=None),
+            patch("pathlib.Path.exists", return_value=False),
+        ):
             with pytest.raises(FileNotFoundError) as exc_info:
                 get_uv_path()
             assert "Could not find 'uv' executable" in str(exc_info.value)
@@ -114,9 +117,12 @@ class TestUvCommandsWithMocks:
 
     def test_run_uv_init_command_structure(self):
         """Test run_uv_init command structure"""
-        with patch(
-            "uv_forger.handlers.uv_handler.get_uv_path", return_value="/usr/bin/uv"
-        ), patch("subprocess.run") as mock_run:
+        with (
+            patch(
+                "uv_forger.handlers.uv_handler.get_uv_path", return_value="/usr/bin/uv"
+            ),
+            patch("subprocess.run") as mock_run,
+        ):
             mock_run.return_value = MagicMock(returncode=0)
 
             with tempfile.TemporaryDirectory() as tmpdir:
@@ -133,9 +139,12 @@ class TestUvCommandsWithMocks:
 
     def test_setup_virtual_env_command_structure(self):
         """Test setup_virtual_env command structure"""
-        with patch(
-            "uv_forger.handlers.uv_handler.get_uv_path", return_value="/usr/bin/uv"
-        ), patch("subprocess.run") as mock_run:
+        with (
+            patch(
+                "uv_forger.handlers.uv_handler.get_uv_path", return_value="/usr/bin/uv"
+            ),
+            patch("subprocess.run") as mock_run,
+        ):
             mock_run.return_value = MagicMock(returncode=0)
 
             with tempfile.TemporaryDirectory() as tmpdir:

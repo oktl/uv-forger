@@ -507,54 +507,6 @@ def test_validate_inputs_clears_warning_on_success(mock_handlers):
         assert controls.warning_banner.value == ""
 
 
-def test_load_framework_template_default(mock_handlers):
-    """Test loading default template (None framework)"""
-    handlers, page, controls, state = mock_handlers
-
-    with patch.object(handlers.template_loader, "load_config") as mock_load:
-        mock_load.return_value = {"folders": ["core", "ui", "utils"]}
-        handlers._load_framework_template(None)
-
-        mock_load.assert_called_once_with(None)
-        assert [f["name"] for f in state.folders] == ["core", "ui", "utils"]
-
-
-def test_load_framework_template_specific(mock_handlers):
-    """Test loading framework-specific template"""
-    handlers, page, controls, state = mock_handlers
-
-    with patch.object(handlers.template_loader, "load_config") as mock_load:
-        mock_load.return_value = {"folders": ["app", "components", "styles"]}
-        handlers._load_framework_template("flet")
-
-        mock_load.assert_called_once_with("flet")
-        assert [f["name"] for f in state.folders] == ["app", "components", "styles"]
-
-
-def test_load_framework_template_updates_display(mock_handlers):
-    """Test that folder display is updated after template load"""
-    handlers, page, controls, state = mock_handlers
-
-    with patch.object(handlers.template_loader, "load_config") as mock_load:
-        mock_load.return_value = {"folders": ["core", "ui"]}
-        handlers._load_framework_template("test")
-
-        assert len(controls.subfolders_container.content.controls) > 0
-
-
-def test_load_framework_template_missing_folders_key(mock_handlers):
-    """Test handling missing folders key in template"""
-    handlers, page, controls, state = mock_handlers
-
-    with patch.object(handlers.template_loader, "load_config") as mock_load:
-        mock_load.return_value = {}
-        state.folders = ["old", "folders"]
-        handlers._load_framework_template("unknown")
-
-        # Should fall back to default or handle gracefully
-        assert isinstance(state.folders, list)
-
-
 @pytest.mark.asyncio
 async def test_wrap_async_creates_callable():
     """Test the wrap_async wrapper creates a callable"""
@@ -673,69 +625,6 @@ async def test_on_other_project_toggle_does_not_uncheck_ui(mock_handlers):
 
     # Verify Other project is now checked
     assert state.other_project_enabled
-
-
-def test_load_project_type_template_with_type(mock_handlers):
-    """Test loading a project type template"""
-    handlers, page, controls, state = mock_handlers
-
-    # Mock the config manager
-    with patch.object(handlers.template_loader, "load_config") as mock_load:
-        mock_load.return_value = {"folders": ["api", "core", "models"]}
-
-        handlers._load_project_type_template("django")
-
-        # Verify correct template path was requested
-        mock_load.assert_called_once_with("project_types/django")
-
-        # Verify folders were loaded (normalized to dicts)
-        assert [f["name"] for f in state.folders] == ["api", "core", "models"]
-
-
-def test_load_project_type_template_none(mock_handlers):
-    """Test loading None project type (clears to default)"""
-    handlers, page, controls, state = mock_handlers
-
-    # Set initial folders
-    state.folders = [{"name": "old", "subfolders": [], "files": []}]
-
-    # Mock the config manager
-    with patch.object(handlers.template_loader, "load_config") as mock_load:
-        mock_load.return_value = {"folders": ["default", "folders"]}
-
-        handlers._load_project_type_template(None)
-
-        # Verify default was requested (None)
-        mock_load.assert_called_once_with(None)
-
-        # Verify folders were updated (normalized to dicts)
-        assert [f["name"] for f in state.folders] == ["default", "folders"]
-
-
-@pytest.mark.parametrize(
-    "project_type,expected_path",
-    [
-        ("django", "project_types/django"),
-        ("fastapi", "project_types/fastapi"),
-        ("flask", "project_types/flask"),
-        ("data_analysis", "project_types/data_analysis"),
-        ("cli_typer", "project_types/cli_typer"),
-        ("scraping", "project_types/scraping"),
-    ],
-)
-def test_load_project_type_template_various_types(
-    mock_handlers, project_type, expected_path
-):
-    """Test loading various project type templates"""
-    handlers, page, controls, state = mock_handlers
-
-    with patch.object(handlers.template_loader, "load_config") as mock_load:
-        mock_load.return_value = {"folders": []}
-
-        handlers._load_project_type_template(project_type)
-
-        # Verify correct path was used
-        mock_load.assert_called_once_with(expected_path)
 
 
 def test_show_project_type_dialog_adds_to_overlay(mock_handlers):

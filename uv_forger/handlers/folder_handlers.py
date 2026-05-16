@@ -451,6 +451,24 @@ class FolderHandlersMixin:
 
         return current, path[-1]
 
+    def _canonical_prefix(self, parent_path: list | None) -> str:
+        """Return the canonical path prefix (with trailing slash) for a parent folder path."""
+        if parent_path is None:
+            return ""
+        canonical = get_canonical_file_path(
+            self.state.folders, parent_path, root_files=self.state.root_files
+        )
+        return f"{canonical}/" if canonical else ""
+
+    def _merge_imported_overrides(
+        self, imported_overrides: dict[str, str], new_name: str, prefix: str
+    ) -> None:
+        """Merge scanned file overrides into state, remapping original folder name to new_name."""
+        for rel_path, content in imported_overrides.items():
+            parts = rel_path.split("/", 1)
+            adjusted = f"{new_name}/{parts[1]}" if len(parts) == 2 else rel_path
+            self.state.file_overrides[f"{prefix}{adjusted}"] = content
+
     async def on_add_folder(self, e: ft.ControlEvent) -> None:
         """Handle Add Folder button click.
 
@@ -495,9 +513,9 @@ class FolderHandlersMixin:
             if item_type == "folder":
                 # Check if content is an imported folder (tuple of dict, overrides)
                 if isinstance(content, tuple):
-                    folder_dict, file_overrides = content
+                    folder_dict, imported_overrides = content
+                    folder_dict["name"] = name
                     new_item = folder_dict
-                    new_item["name"] = name  # Use user-edited name
                 else:
                     new_item = {"name": name, "subfolders": [], "files": []}
 
@@ -506,29 +524,10 @@ class FolderHandlersMixin:
                 else:
                     parent_container.append(new_item)
 
-                # Merge file_overrides for imported folders
                 if isinstance(content, tuple):
-                    _, file_overrides = content
-                    # Build canonical prefix for insertion point
-                    if parent_path is not None:
-                        parent_canonical = get_canonical_file_path(
-                            self.state.folders,
-                            parent_path,
-                            root_files=self.state.root_files,
-                        )
-                        prefix = f"{parent_canonical}/" if parent_canonical else ""
-                    else:
-                        prefix = ""
-                    # file_overrides keys are like "origname/sub/file.py"
-                    # Replace the original folder name prefix with the user name
-                    for rel_path, file_content in file_overrides.items():
-                        # rel_path starts with "original_name/..."
-                        parts = rel_path.split("/", 1)
-                        if len(parts) == 2:
-                            adjusted = f"{name}/{parts[1]}"
-                        else:
-                            adjusted = rel_path
-                        self.state.file_overrides[f"{prefix}{adjusted}"] = file_content
+                    self._merge_imported_overrides(
+                        imported_overrides, name, self._canonical_prefix(parent_path)
+                    )
             else:
                 if parent_path is None:
                     dialog.warning_text.value = "Files must be added inside a folder."
@@ -806,19 +805,7 @@ class FolderHandlersMixin:
                 parent_folder = parent_container
             parent_folder.setdefault("subfolders", []).append(folder_dict)
 
-        # Compute canonical prefix for file_overrides
-        # Build the prefix by walking the parent path
-        if parent_path is not None:
-            parent_canonical = get_canonical_file_path(
-                self.state.folders, parent_path, root_files=self.state.root_files
-            )
-            if parent_canonical:
-                prefix = f"{parent_canonical}/"
-            else:
-                prefix = ""
-        else:
-            prefix = ""
-
+        prefix = self._canonical_prefix(parent_path)
         for rel_path, content in file_overrides.items():
             self.state.file_overrides[f"{prefix}{rel_path}"] = content
 

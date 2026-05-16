@@ -22,6 +22,7 @@ from uv_forger.core.template_merger import normalize_folder
 from uv_forger.core.validator import validate_project_name
 from uv_forger.handlers.git_handler import check_gh_authenticated, check_gh_available
 from uv_forger.handlers.handler_base import wrap_async
+from uv_forger.handlers.option_handlers import _append_post_build_packages
 from uv_forger.handlers.project_builder import build_project
 from uv_forger.ui.dialog_data import (
     OTHER_PROJECT_CHECKBOX_LABEL,
@@ -277,66 +278,47 @@ class BuildHandlersMixin:
 
         self.page.update()
 
-    def _restore_from_history(self, entry) -> None:
-        """Populate state and UI controls from a history entry.
+    def _apply_common_config(self, cfg) -> None:
+        """Populate shared state and UI from a history entry or preset.
 
-        Sets all state fields from the entry, updates folder/package
-        displays directly (without reloading templates), and validates.
-
-        Args:
-            entry: A ProjectHistoryEntry with the saved configuration.
+        Handles: python version, git, starter files, framework/project type,
+        folders, packages, dev packages, post-build merge, checkbox sync.
+        Does NOT touch name/path (history-only) or metadata (preset-only).
         """
-        # Populate state
-        self.state.project_name = entry.project_name
-        self.state.project_path = entry.project_path
-        self.state.python_version = entry.python_version
-        self.state.git_enabled = entry.git_enabled
-        self.state.include_starter_files = entry.include_starter_files
-        self.state.ui_project_enabled = entry.ui_project_enabled
-        self.state.framework = entry.framework
-        self.state.other_project_enabled = entry.other_project_enabled
-        self.state.project_type = entry.project_type
-        self.state.folders = [normalize_folder(f) for f in entry.folders]
-        self.state.imported_structure = getattr(entry, "imported_structure", False)
-        self.state.root_files = list(getattr(entry, "root_files", []))
-        self.state.packages = list(entry.packages)
-        self.state.dev_packages = set(getattr(entry, "dev_packages", []))
-
-        # Merge post-build required packages from settings (e.g. pre-commit)
-        if self.state.settings.post_build_command_enabled:
-            extra = self.state.settings.post_build_packages
-            if extra:
-                existing = {p.lower() for p in self.state.packages}
-                for pkg in (p.strip() for p in extra.split(",")):
-                    if pkg and pkg.lower() not in existing:
-                        self.state.packages.append(pkg)
+        self.state.python_version = cfg.python_version
+        self.state.git_enabled = cfg.git_enabled
+        self.state.include_starter_files = cfg.include_starter_files
+        self.state.ui_project_enabled = cfg.ui_project_enabled
+        self.state.framework = cfg.framework
+        self.state.other_project_enabled = cfg.other_project_enabled
+        self.state.project_type = cfg.project_type
+        self.state.folders = [normalize_folder(f) for f in cfg.folders]
+        self.state.imported_structure = getattr(cfg, "imported_structure", False)
+        self.state.root_files = list(getattr(cfg, "root_files", []))
+        self.state.packages = list(cfg.packages)
+        self.state.dev_packages = set(getattr(cfg, "dev_packages", []))
+        _append_post_build_packages(self.state.packages, self.state.settings)
         self.state.auto_packages = list(self.state.packages)
-        # Auto-mark always-dev packages
         self.state.dev_packages |= ALWAYS_DEV_PACKAGES & set(self.state.packages)
 
-        # Update UI controls
-        self.controls.project_name_input.value = entry.project_name
-        self.controls.project_path_input.value = entry.project_path
-        self.controls.python_version_dropdown.value = entry.python_version
-        self.controls.create_git_checkbox.value = entry.git_enabled
-        self.controls.include_starter_files_checkbox.value = entry.include_starter_files
-        self.controls.ui_project_checkbox.value = entry.ui_project_enabled
-        self.controls.other_projects_checkbox.value = entry.other_project_enabled
+        self.controls.python_version_dropdown.value = cfg.python_version
+        self.controls.create_git_checkbox.value = cfg.git_enabled
+        self.controls.include_starter_files_checkbox.value = cfg.include_starter_files
+        self.controls.ui_project_checkbox.value = cfg.ui_project_enabled
+        self.controls.other_projects_checkbox.value = cfg.other_project_enabled
 
-        # Update checkbox labels
-        if entry.ui_project_enabled and entry.framework:
-            self.controls.ui_project_checkbox.label = f"UI Framework: {entry.framework}"
+        if cfg.ui_project_enabled and cfg.framework:
+            self.controls.ui_project_checkbox.label = f"UI Framework: {cfg.framework}"
         else:
             self.controls.ui_project_checkbox.label = UI_PROJECT_CHECKBOX_LABEL
 
-        if entry.other_project_enabled and entry.project_type:
+        if cfg.other_project_enabled and cfg.project_type:
             self.controls.other_projects_checkbox.label = (
-                f"Project Type: {entry.project_type}"
+                f"Project Type: {cfg.project_type}"
             )
         else:
             self.controls.other_projects_checkbox.label = OTHER_PROJECT_CHECKBOX_LABEL
 
-        # Style checkboxes
         for cb in (
             self.controls.create_git_checkbox,
             self.controls.include_starter_files_checkbox,
@@ -345,7 +327,23 @@ class BuildHandlersMixin:
         ):
             self._style_selected_checkbox(cb)
 
-        # Validate path and name
+        self._update_folder_display()
+        self._update_package_display()
+        self._update_build_button_state()
+
+    def _restore_from_history(self, entry) -> None:
+        """Populate state and UI controls from a history entry.
+
+        Args:
+            entry: A ProjectHistoryEntry with the saved configuration.
+        """
+        self.state.project_name = entry.project_name
+        self.state.project_path = entry.project_path
+        self._apply_common_config(entry)
+
+        self.controls.project_name_input.value = entry.project_name
+        self.controls.project_path_input.value = entry.project_path
+
         self.state.path_valid = Path(entry.project_path).is_dir()
         self._set_validation_icon(
             self.controls.project_path_input, self.state.path_valid
@@ -362,12 +360,7 @@ class BuildHandlersMixin:
             self.state.name_valid if entry.project_name else None,
         )
 
-        # Update displays
-        self._update_folder_display()
-        self._update_package_display()
-        self._update_build_button_state()
         self._update_path_preview()
-
         self.controls.pypi_status_text.value = ""
         self.controls.check_pypi_button.disabled = not self.state.name_valid
         self.controls.warning_banner.value = ""
@@ -376,85 +369,25 @@ class BuildHandlersMixin:
             if self.state.name_valid
             else "UV Forger"
         )
-
         self._show_snackbar(f"Restored: {entry.project_name}")
         self.page.update()
 
     def _apply_preset(self, preset) -> None:
         """Populate state and UI controls from a preset.
 
-        Like _restore_from_history but skips project_name and project_path,
-        since those are per-project and not part of a preset.
+        Like _restore_from_history but skips project_name/path and applies metadata.
 
         Args:
             preset: A ProjectPreset with the saved configuration.
         """
-        self.state.python_version = preset.python_version
-        self.state.git_enabled = preset.git_enabled
-        self.state.include_starter_files = preset.include_starter_files
-        self.state.ui_project_enabled = preset.ui_project_enabled
-        self.state.framework = preset.framework
-        self.state.other_project_enabled = preset.other_project_enabled
-        self.state.project_type = preset.project_type
-        self.state.folders = [normalize_folder(f) for f in preset.folders]
-        self.state.imported_structure = getattr(preset, "imported_structure", False)
-        self.state.root_files = list(getattr(preset, "root_files", []))
-        self.state.packages = list(preset.packages)
-        self.state.dev_packages = set(getattr(preset, "dev_packages", []))
+        self._apply_common_config(preset)
 
-        # Merge post-build required packages from settings (e.g. pre-commit)
-        if self.state.settings.post_build_command_enabled:
-            extra = self.state.settings.post_build_packages
-            if extra:
-                existing = {p.lower() for p in self.state.packages}
-                for pkg in (p.strip() for p in extra.split(",")):
-                    if pkg and pkg.lower() not in existing:
-                        self.state.packages.append(pkg)
-        self.state.auto_packages = list(self.state.packages)
-        # Auto-mark always-dev packages
-        self.state.dev_packages |= ALWAYS_DEV_PACKAGES & set(self.state.packages)
-
-        # Metadata
         self.state.author_name = getattr(preset, "author_name", "")
         self.state.author_email = getattr(preset, "author_email", "")
         self.state.description = getattr(preset, "description", "")
         self.state.license_type = getattr(preset, "license_type", "")
 
-        # Update UI controls
         self.controls.preset_dropdown.value = preset.name
-        self.controls.python_version_dropdown.value = preset.python_version
-        self.controls.create_git_checkbox.value = preset.git_enabled
-        self.controls.include_starter_files_checkbox.value = (
-            preset.include_starter_files
-        )
-        self.controls.ui_project_checkbox.value = preset.ui_project_enabled
-        self.controls.other_projects_checkbox.value = preset.other_project_enabled
-
-        # Update checkbox labels
-        if preset.ui_project_enabled and preset.framework:
-            self.controls.ui_project_checkbox.label = (
-                f"UI Framework: {preset.framework}"
-            )
-        else:
-            self.controls.ui_project_checkbox.label = UI_PROJECT_CHECKBOX_LABEL
-
-        if preset.other_project_enabled and preset.project_type:
-            self.controls.other_projects_checkbox.label = (
-                f"Project Type: {preset.project_type}"
-            )
-        else:
-            self.controls.other_projects_checkbox.label = OTHER_PROJECT_CHECKBOX_LABEL
-
-        # Style checkboxes
-        for cb in (
-            self.controls.create_git_checkbox,
-            self.controls.include_starter_files_checkbox,
-            self.controls.ui_project_checkbox,
-            self.controls.other_projects_checkbox,
-        ):
-            self._style_selected_checkbox(cb)
-
-        # Update metadata summary
         self._update_metadata_summary()
         has_metadata = any(
             [
@@ -466,11 +399,6 @@ class BuildHandlersMixin:
         )
         self.controls.metadata_checkbox.value = has_metadata
         self._style_selected_checkbox(self.controls.metadata_checkbox)
-
-        # Refresh displays
-        self._update_folder_display()
-        self._update_package_display()
-        self._update_build_button_state()
 
         self._show_snackbar(f"Preset applied: {preset.name}")
         self.page.update()

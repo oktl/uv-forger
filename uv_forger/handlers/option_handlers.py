@@ -19,6 +19,19 @@ from uv_forger.ui.dialogs import (
 )
 
 
+def _append_post_build_packages(packages: list[str], settings) -> None:
+    """Merge post-build required packages into packages list (mutates in place)."""
+    if not settings.post_build_command_enabled:
+        return
+    extra = settings.post_build_packages
+    if not extra:
+        return
+    existing = {p.lower() for p in packages}
+    for pkg in (p.strip() for p in extra.split(",")):
+        if pkg and pkg.lower() not in existing:
+            packages.append(pkg)
+
+
 class OptionHandlersMixin:
     """Mixin for option checkbox toggles, framework/project type dialogs,
     and template loading/merging.
@@ -210,25 +223,6 @@ class OptionHandlersMixin:
         raw_folders = settings.get("folders", DEFAULT_FOLDERS.copy())
         return [normalize_folder(folder) for folder in raw_folders]
 
-    def _load_project_type_template(self, project_type: str | None) -> None:
-        """Load folder template for the specified project type.
-
-        Args:
-            project_type: Project type key (e.g., "django"), or None for default.
-        """
-        template_name = f"project_types/{project_type}" if project_type else None
-        self.state.folders = self._load_template_folders(template_name)
-        self._update_folder_display()
-
-    def _load_framework_template(self, framework: str | None) -> None:
-        """Load folder template for the specified framework.
-
-        Args:
-            framework: UI framework name (e.g., "flet"), or None for default.
-        """
-        self.state.folders = self._load_template_folders(framework)
-        self._update_folder_display()
-
     def _reload_and_merge_templates(self) -> None:
         """Reload templates based on current selections and merge if both are active.
 
@@ -300,11 +294,5 @@ class OptionHandlersMixin:
                 packages.append(fw_pkg)
         if self.state.other_project_enabled and self.state.project_type:
             packages.extend(PROJECT_TYPE_PACKAGE_MAP.get(self.state.project_type, []))
-        if self.state.settings.post_build_command_enabled:
-            extra = self.state.settings.post_build_packages
-            if extra:
-                existing = {p.lower() for p in packages}
-                for pkg in (p.strip() for p in extra.split(",")):
-                    if pkg and pkg.lower() not in existing:
-                        packages.append(pkg)
+        _append_post_build_packages(packages, self.state.settings)
         return packages
