@@ -3,7 +3,6 @@
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-import flet as ft
 import pytest
 
 from uv_forger.core.history_manager import ProjectHistoryEntry
@@ -41,10 +40,18 @@ class MockControls:
         self.project_name_input = Mock(value="", suffix=None)
         self.project_path_input = Mock(value="", suffix=None)
         self.python_version_dropdown = Mock(value="3.14")
-        self.create_git_checkbox = Mock(value=True, label="Initialize Git Repository", label_style=None)
-        self.include_starter_files_checkbox = Mock(value=True, label="Include Starter Files", label_style=None)
-        self.ui_project_checkbox = Mock(value=False, label="Create UI Project", label_style=None)
-        self.other_projects_checkbox = Mock(value=False, label="Create Other Project Type", label_style=None)
+        self.create_git_checkbox = Mock(
+            value=True, label="Initialize Git Repository", label_style=None
+        )
+        self.include_starter_files_checkbox = Mock(
+            value=True, label="Include Starter Files", label_style=None
+        )
+        self.ui_project_checkbox = Mock(
+            value=False, label="Create UI Project", label_style=None
+        )
+        self.other_projects_checkbox = Mock(
+            value=False, label="Create Other Project Type", label_style=None
+        )
         self.save_as_preset_button = Mock()
         self.build_project_button = Mock(disabled=True, opacity=0.5, tooltip="")
         self.copy_path_button = Mock(disabled=True, opacity=0.4, tooltip="")
@@ -65,8 +72,20 @@ class MockControls:
 def _sample_folders():
     """Return folder dicts in the format _update_folder_display expects."""
     return [
-        {"name": "core", "create_init": True, "root_level": False, "subfolders": [], "files": ["state.py"]},
-        {"name": "utils", "create_init": True, "root_level": False, "subfolders": [], "files": []},
+        {
+            "name": "core",
+            "create_init": True,
+            "root_level": False,
+            "subfolders": [],
+            "files": ["state.py"],
+        },
+        {
+            "name": "utils",
+            "create_init": True,
+            "root_level": False,
+            "subfolders": [],
+            "files": [],
+        },
     ]
 
 
@@ -116,7 +135,9 @@ async def test_on_history_click_with_entries(handler_setup):
     handlers, page, controls, state = handler_setup
     entry = _make_entry()
 
-    with patch("uv_forger.handlers.feature_handlers.load_history", return_value=[entry]):
+    with patch(
+        "uv_forger.handlers.feature_handlers.load_history", return_value=[entry]
+    ):
         await handlers.on_history_click(None)
 
     assert len(page.overlay) == 1
@@ -158,8 +179,20 @@ def test_restore_sets_folder_display_directly(handler_setup):
     """_restore_from_history sets folders on state without reloading templates."""
     handlers, page, controls, state = handler_setup
     custom_folders = [
-        {"name": "custom_folder", "create_init": False, "root_level": False, "subfolders": [], "files": []},
-        {"name": "nested", "create_init": False, "root_level": False, "subfolders": [], "files": ["a.py"]},
+        {
+            "name": "custom_folder",
+            "create_init": False,
+            "root_level": False,
+            "subfolders": [],
+            "files": [],
+        },
+        {
+            "name": "nested",
+            "create_init": False,
+            "root_level": False,
+            "subfolders": [],
+            "files": ["a.py"],
+        },
     ]
     entry = _make_entry(folders=custom_folders)
 
@@ -213,7 +246,10 @@ async def test_history_saved_after_successful_build(handler_setup):
     mock_result = Mock(success=True, message="Project created!")
 
     with (
-        patch("uv_forger.handlers.build_handlers.AsyncExecutor.run", return_value=mock_result),
+        patch(
+            "uv_forger.handlers.build_handlers.AsyncExecutor.run",
+            return_value=mock_result,
+        ),
         patch("uv_forger.handlers.build_handlers.add_to_history") as mock_add,
         patch("uv_forger.handlers.build_handlers.make_history_entry") as mock_make,
     ):

@@ -38,7 +38,7 @@ class TestLoadTemplate:
         """Test loads valid JSON file"""
         manager = TemplateLoader()
 
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             json.dump({"folders": ["src", "tests"]}, f)
             temp_path = Path(f.name)
 
@@ -54,7 +54,7 @@ class TestLoadTemplate:
         """Test returns None for invalid JSON file"""
         manager = TemplateLoader()
 
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             f.write("{ invalid json }")
             temp_path = Path(f.name)
 
@@ -232,7 +232,6 @@ class TestLoadConfigProjectTypePath:
     def test_load_config_updates_config_source(self):
         """After successful load, config_source is updated (line 110-111)."""
         manager = TemplateLoader()
-        original_source = manager.config_source
         manager.load_config("flet")
         # config_source should reflect the flet template path now
         assert "flet" in str(manager.config_source).lower()
@@ -247,6 +246,5 @@ class TestLoadConfigProjectTypePath:
         assert "folders" in config
         # Should have fallen back to DEFAULT_FOLDERS
         from uv_forger.core.constants import DEFAULT_FOLDERS
+
         assert config["folders"] == DEFAULT_FOLDERS.copy()
-
-

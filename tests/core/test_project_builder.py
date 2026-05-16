@@ -3,7 +3,7 @@
 import tempfile
 from pathlib import Path
 from subprocess import CalledProcessError
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from uv_forger.core.models import ProjectConfig
 from uv_forger.handlers.project_builder import (
@@ -121,9 +121,7 @@ class TestCollectPackagesToInstall:
 
     def test_framework_package_added_when_ui_enabled(self):
         with tempfile.TemporaryDirectory() as tmpdir:
-            config = _make_config(
-                tmpdir, ui_project_enabled=True, framework="flet"
-            )
+            config = _make_config(tmpdir, ui_project_enabled=True, framework="flet")
             runtime, dev = _collect_packages_to_install(config)
             assert "flet" in runtime
 
@@ -256,24 +254,22 @@ class TestBuildProjectErrors:
             deep_path = Path(tmpdir) / "a" / "b" / "c"
             config = _make_config(deep_path, project_name="my_proj")
 
-            with patch(
-                "uv_forger.handlers.project_builder._create_project_scaffold"
-            ) as mock_scaffold, patch(
-                "uv_forger.handlers.project_builder._install_dependencies"
-            ), patch(
-                "uv_forger.handlers.project_builder.finalize_git_setup"
+            with (
+                patch(
+                    "uv_forger.handlers.project_builder._create_project_scaffold"
+                ) as mock_scaffold,
+                patch("uv_forger.handlers.project_builder._install_dependencies"),
+                patch("uv_forger.handlers.project_builder.finalize_git_setup"),
             ):
                 mock_scaffold.return_value = None
-                result = build_project(config)
+                build_project(config)
 
             assert deep_path.exists()
 
     def test_base_dir_creation_failure_returns_error(self):
         """OSError while creating missing base dir returns clean error."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            config = _make_config(
-                Path(tmpdir) / "missing_base", project_name="my_proj"
-            )
+            config = _make_config(Path(tmpdir) / "missing_base", project_name="my_proj")
             with patch("pathlib.Path.mkdir", side_effect=OSError("permission denied")):
                 result = build_project(config)
 
@@ -284,12 +280,10 @@ class TestBuildProjectErrors:
         with tempfile.TemporaryDirectory() as tmpdir:
             config = _make_config(tmpdir, project_name="my_proj")
 
-            with patch(
-                "uv_forger.handlers.project_builder._create_project_scaffold"
-            ), patch(
-                "uv_forger.handlers.project_builder._install_dependencies"
-            ), patch(
-                "uv_forger.handlers.project_builder.finalize_git_setup"
+            with (
+                patch("uv_forger.handlers.project_builder._create_project_scaffold"),
+                patch("uv_forger.handlers.project_builder._install_dependencies"),
+                patch("uv_forger.handlers.project_builder.finalize_git_setup"),
             ):
                 result = build_project(config)
 

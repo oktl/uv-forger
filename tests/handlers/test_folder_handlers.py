@@ -162,9 +162,7 @@ class TestGetFolderHierarchy:
         state.folders = [
             {
                 "name": "app",
-                "subfolders": [
-                    {"name": "core", "subfolders": [], "files": []}
-                ],
+                "subfolders": [{"name": "core", "subfolders": [], "files": []}],
                 "files": [],
             }
         ]
@@ -182,9 +180,7 @@ class TestGetFolderHierarchy:
                 "subfolders": [
                     {
                         "name": "b",
-                        "subfolders": [
-                            {"name": "c", "subfolders": [], "files": []}
-                        ],
+                        "subfolders": [{"name": "c", "subfolders": [], "files": []}],
                         "files": [],
                     }
                 ],
@@ -625,9 +621,7 @@ class TestFolderContextMenu:
         handlers, state = mock_handlers
         state.folders = [{"name": "core", "subfolders": [], "files": ["main.py"]}]
 
-        result = handlers._create_item_container(
-            "main.py", [0, "files", 0], "file"
-        )
+        result = handlers._create_item_container("main.py", [0, "files", 0], "file")
         assert isinstance(result, ft.ContextMenu)
         actions = [item.data["action"] for item in result.secondary_items]
         assert "preview" in actions

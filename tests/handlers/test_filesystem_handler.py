@@ -40,10 +40,7 @@ class TestCreateFolders:
         with tempfile.TemporaryDirectory() as tmpdir:
             parent = Path(tmpdir)
             folders = [
-                {
-                    "name": "handlers",
-                    "files": ["git_handler.py", "uv_handler.py"]
-                }
+                {"name": "handlers", "files": ["git_handler.py", "uv_handler.py"]}
             ]
             create_folders(parent, folders)
 
@@ -59,8 +56,8 @@ class TestCreateFolders:
                     "name": "app",
                     "subfolders": [
                         "core",
-                        {"name": "utils", "subfolders": ["helpers"]}
-                    ]
+                        {"name": "utils", "subfolders": ["helpers"]},
+                    ],
                 }
             ]
             create_folders(parent, folders)
@@ -76,11 +73,7 @@ class TestCreateFolders:
         with tempfile.TemporaryDirectory() as tmpdir:
             parent = Path(tmpdir)
             folders = [
-                {
-                    "name": "no_init",
-                    "create_init": False,
-                    "subfolders": ["child"]
-                }
+                {"name": "no_init", "create_init": False, "subfolders": ["child"]}
             ]
             create_folders(parent, folders)
 
@@ -109,10 +102,7 @@ class TestSetupAppStructure:
         """Test root-level folders"""
         with tempfile.TemporaryDirectory() as tmpdir:
             project_path = Path(tmpdir)
-            folders = [
-                {"name": "tests", "root_level": True},
-                "core"
-            ]
+            folders = [{"name": "tests", "root_level": True}, "core"]
             setup_app_structure(project_path, folders)
 
             assert (project_path / "tests").exists()
@@ -185,9 +175,7 @@ class TestCreateFoldersSkipFiles:
             folders = [
                 {
                     "name": "core",
-                    "subfolders": [
-                        {"name": "utils", "files": ["helper.py"]}
-                    ],
+                    "subfolders": [{"name": "utils", "files": ["helper.py"]}],
                 }
             ]
             create_folders(parent, folders, skip_files=True)
@@ -218,9 +206,7 @@ class TestCreateFoldersWithResolver:
         bp.mkdir(parents=True)
         for name, content in (files or {}).items():
             (bp / name).write_text(content)
-        return BoilerplateResolver(
-            "testproj", boilerplate_dir=Path(tmpdir) / "bp"
-        )
+        return BoilerplateResolver("testproj", boilerplate_dir=Path(tmpdir) / "bp")
 
     def test_file_gets_boilerplate_content(self):
         """Files with matching boilerplate get their content populated."""
@@ -264,17 +250,13 @@ class TestCreateFoldersWithResolver:
     def test_resolver_propagates_to_subfolders(self):
         """Resolver is passed through to nested subfolder creation."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            resolver = self._make_resolver(
-                tmpdir, {"helper.py": "# helper"}
-            )
+            resolver = self._make_resolver(tmpdir, {"helper.py": "# helper"})
             parent = Path(tmpdir) / "project"
             parent.mkdir()
             folders = [
                 {
                     "name": "core",
-                    "subfolders": [
-                        {"name": "utils", "files": ["helper.py"]}
-                    ],
+                    "subfolders": [{"name": "utils", "files": ["helper.py"]}],
                 }
             ]
             create_folders(parent, folders, resolver=resolver)
@@ -330,14 +312,15 @@ class TestCreateFoldersWithResolver:
     def test_setup_app_structure_no_replace_when_skip_files(self):
         """main.py is not replaced when skip_files=True."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            resolver = self._make_resolver(
-                tmpdir, {"main.py": "# boilerplate"}
-            )
+            resolver = self._make_resolver(tmpdir, {"main.py": "# boilerplate"})
             project_path = Path(tmpdir) / "project"
             project_path.mkdir()
             (project_path / "main.py").write_text('print("Hello")')
             setup_app_structure(
-                project_path, [], resolver=resolver, skip_files=True,
+                project_path,
+                [],
+                resolver=resolver,
+                skip_files=True,
             )
 
             app_main = project_path / "app" / "main.py"
@@ -382,7 +365,10 @@ class TestCreateFoldersWithResolver:
             project_path.mkdir()
             (project_path / "README.md").touch()
             setup_app_structure(
-                project_path, [], resolver=resolver, skip_files=True,
+                project_path,
+                [],
+                resolver=resolver,
+                skip_files=True,
             )
 
             readme = project_path / "README.md"
@@ -406,9 +392,13 @@ class TestSetupImportedStructure:
             project.mkdir()
             folders = [
                 {"name": "docs", "create_init": False, "files": ["index.md"]},
-                {"name": "src", "create_init": False, "subfolders": [
-                    {"name": "mylib", "create_init": True, "files": ["app.py"]}
-                ]},
+                {
+                    "name": "src",
+                    "create_init": False,
+                    "subfolders": [
+                        {"name": "mylib", "create_init": True, "files": ["app.py"]}
+                    ],
+                },
                 {"name": "tests", "create_init": False, "files": ["test_main.py"]},
             ]
             setup_imported_structure(project, folders)
@@ -473,8 +463,12 @@ class TestSetupImportedStructure:
             )
 
             # UV files with overrides should be replaced
-            assert (project / "pyproject.toml").read_text() == '[project]\nname = "custom"'
-            assert (project / "README.md").read_text() == "# Custom Readme\n\nMy project."
+            assert (
+                project / "pyproject.toml"
+            ).read_text() == '[project]\nname = "custom"'
+            assert (
+                project / "README.md"
+            ).read_text() == "# Custom Readme\n\nMy project."
             # Non-UV files without overrides still created
             assert (project / "LICENSE").exists()
 

@@ -1,8 +1,11 @@
 """Tests for template_merger.py - folder normalization and merging utilities."""
 
-
 from uv_forger.core.models import FolderSpec
-from uv_forger.core.template_merger import _merge_files, merge_folder_lists, normalize_folder
+from uv_forger.core.template_merger import (
+    _merge_files,
+    merge_folder_lists,
+    normalize_folder,
+)
 
 # ========== TestNormalizeFolder ==========
 
@@ -29,13 +32,15 @@ class TestNormalizeFolder:
         assert result["files"] == []
 
     def test_full_dict(self):
-        result = normalize_folder({
-            "name": "config",
-            "create_init": False,
-            "root_level": True,
-            "subfolders": ["sub1"],
-            "files": ["settings.py"],
-        })
+        result = normalize_folder(
+            {
+                "name": "config",
+                "create_init": False,
+                "root_level": True,
+                "subfolders": ["sub1"],
+                "files": ["settings.py"],
+            }
+        )
         assert result["name"] == "config"
         assert result["create_init"] is False
         assert result["root_level"] is True
@@ -44,12 +49,12 @@ class TestNormalizeFolder:
         assert result["files"] == ["settings.py"]
 
     def test_nested_subfolders(self):
-        result = normalize_folder({
-            "name": "app",
-            "subfolders": [
-                {"name": "core", "subfolders": ["deep"]}
-            ],
-        })
+        result = normalize_folder(
+            {
+                "name": "app",
+                "subfolders": [{"name": "core", "subfolders": ["deep"]}],
+            }
+        )
         assert result["subfolders"][0]["name"] == "core"
         assert result["subfolders"][0]["subfolders"][0]["name"] == "deep"
 
@@ -169,15 +174,16 @@ class TestMergeFolderLists:
 
     def test_recursive_subfolders(self):
         primary = [
-            {"name": "app", "subfolders": [
-                {"name": "core", "files": ["state.py"]}
-            ]}
+            {"name": "app", "subfolders": [{"name": "core", "files": ["state.py"]}]}
         ]
         secondary = [
-            {"name": "app", "subfolders": [
-                {"name": "core", "files": ["models.py"]},
-                {"name": "api", "files": []}
-            ]}
+            {
+                "name": "app",
+                "subfolders": [
+                    {"name": "core", "files": ["models.py"]},
+                    {"name": "api", "files": []},
+                ],
+            }
         ]
         result = merge_folder_lists(primary, secondary)
         assert len(result) == 1

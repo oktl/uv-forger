@@ -4,8 +4,6 @@ import json
 from pathlib import Path
 from unittest.mock import patch
 
-import pytest
-
 from uv_forger.core.settings_manager import (
     SETTINGS_DIR,
     SETTINGS_FILE,

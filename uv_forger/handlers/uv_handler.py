@@ -220,6 +220,41 @@ def configure_pyproject(
         f.write(config)
 
 
+def _replace_description(content: str, description: str) -> str:
+    """Replace the description line in the [project] section."""
+    lines = content.split("\n")
+    result_lines = []
+    in_project = False
+    for line in lines:
+        if line.strip() == "[project]":
+            in_project = True
+            result_lines.append(line)
+            continue
+        if in_project and line.strip().startswith("[") and line.strip() != "[project]":
+            in_project = False
+        if in_project and line.startswith("description"):
+            result_lines.append(
+                f'description = "{description}"' if description else line
+            )
+            continue
+        result_lines.append(line)
+    return "\n".join(result_lines)
+
+
+def _insert_line_after_fields(
+    content: str, new_line: str, after_fields: tuple[str, ...]
+) -> str:
+    """Insert new_line after the last line starting with any of after_fields."""
+    lines = content.split("\n")
+    insert_idx = None
+    for i, line in enumerate(lines):
+        if line.startswith(after_fields):
+            insert_idx = i + 1
+    if insert_idx is not None:
+        lines.insert(insert_idx, new_line)
+    return "\n".join(lines)
+
+
 def _apply_metadata_to_pyproject(
     content: str,
     author_name: str,
@@ -242,62 +277,24 @@ def _apply_metadata_to_pyproject(
     Returns:
         Modified pyproject.toml content.
     """
-    lines = content.split("\n")
-    result_lines = []
-    in_project = False
+    content = _replace_description(content, description)
 
-    for line in lines:
-        if line.strip() == "[project]":
-            in_project = True
-            result_lines.append(line)
-            continue
-        if in_project and line.strip().startswith("[") and line.strip() != "[project]":
-            in_project = False
-
-        if in_project and line.startswith("description"):
-            if description:
-                result_lines.append(f'description = "{description}"')
-            else:
-                result_lines.append(line)
-            continue
-
-        result_lines.append(line)
-
-    content = "\n".join(result_lines)
-
-    # Add authors if provided
     if author_name or author_email:
-        author_parts = []
+        parts = []
         if author_name:
-            author_parts.append(f'name = "{author_name}"')
+            parts.append(f'name = "{author_name}"')
         if author_email:
-            author_parts.append(f'email = "{author_email}"')
-        authors_line = "authors = [{" + ", ".join(author_parts) + "}]"
+            parts.append(f'email = "{author_email}"')
+        authors_line = "authors = [{" + ", ".join(parts) + "}]"
+        content = _insert_line_after_fields(
+            content, authors_line, ("description", "version")
+        )
 
-        # Insert after the description line or after version line
-        insert_lines = content.split("\n")
-        insert_idx = None
-        for i, line in enumerate(insert_lines):
-            if line.startswith("description") or line.startswith("version"):
-                insert_idx = i + 1
-        if insert_idx is not None:
-            insert_lines.insert(insert_idx, authors_line)
-            content = "\n".join(insert_lines)
-
-    # Add license if provided
     if license_type:
-        license_line = f'license = "{license_type}"'
-        insert_lines = content.split("\n")
-        insert_idx = None
-        for i, line in enumerate(insert_lines):
-            if (
-                line.startswith("authors")
-                or line.startswith("description")
-                or line.startswith("version")
-            ):
-                insert_idx = i + 1
-        if insert_idx is not None:
-            insert_lines.insert(insert_idx, license_line)
-            content = "\n".join(insert_lines)
+        content = _insert_line_after_fields(
+            content,
+            f'license = "{license_type}"',
+            ("authors", "description", "version"),
+        )
 
     return content

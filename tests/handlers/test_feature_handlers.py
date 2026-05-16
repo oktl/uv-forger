@@ -62,9 +62,10 @@ async def test_on_log_viewer_click(handler_setup, tmp_path):
         "2026-02-19 10:00:00 | INFO     | app.main:start:10 - Started\n"
     )
 
-    with patch(
-        "uv_forger.handlers.feature_handlers.LOG_DIR", tmp_path / "logs"
-    ), patch("uv_forger.handlers.feature_handlers.date") as mock_date:
+    with (
+        patch("uv_forger.handlers.feature_handlers.LOG_DIR", tmp_path / "logs"),
+        patch("uv_forger.handlers.feature_handlers.date") as mock_date,
+    ):
         mock_date.today.return_value = type(
             "D", (), {"__format__": lambda self, fmt: "2026-02-19"}
         )()
@@ -81,9 +82,10 @@ async def test_on_log_viewer_click_no_file(handler_setup, tmp_path):
     """Handler shows snackbar when no log file exists."""
     handlers, page, controls, state = handler_setup
 
-    with patch(
-        "uv_forger.handlers.feature_handlers.LOG_DIR", tmp_path / "logs"
-    ), patch("uv_forger.handlers.feature_handlers.date") as mock_date:
+    with (
+        patch("uv_forger.handlers.feature_handlers.LOG_DIR", tmp_path / "logs"),
+        patch("uv_forger.handlers.feature_handlers.date") as mock_date,
+    ):
         mock_date.today.return_value = type(
             "D", (), {"__format__": lambda self, fmt: "2026-02-19"}
         )()
@@ -105,9 +107,10 @@ def test_open_file_in_ide(handler_setup, tmp_path):
     mod_dir.mkdir(parents=True)
     (mod_dir / "state.py").write_text("# state")
 
-    with patch(
-        "uv_forger.handlers.feature_handlers._APP_ROOT", tmp_path
-    ), patch("uv_forger.handlers.feature_handlers.subprocess") as mock_sub:
+    with (
+        patch("uv_forger.handlers.feature_handlers._APP_ROOT", tmp_path),
+        patch("uv_forger.handlers.feature_handlers.subprocess") as mock_sub,
+    ):
         handlers._open_file_in_ide("uv_forger.core.state", 42)
 
     mock_sub.Popen.assert_called_once()
@@ -117,9 +120,10 @@ def test_open_file_in_ide_missing_file(handler_setup, tmp_path):
     """_open_file_in_ide does nothing for non-existent file."""
     handlers, page, controls, state = handler_setup
 
-    with patch(
-        "uv_forger.handlers.feature_handlers._APP_ROOT", tmp_path
-    ), patch("uv_forger.handlers.feature_handlers.subprocess") as mock_sub:
+    with (
+        patch("uv_forger.handlers.feature_handlers._APP_ROOT", tmp_path),
+        patch("uv_forger.handlers.feature_handlers.subprocess") as mock_sub,
+    ):
         handlers._open_file_in_ide("app.nonexistent.module", 1)
 
     mock_sub.Popen.assert_not_called()

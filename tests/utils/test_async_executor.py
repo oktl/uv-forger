@@ -14,6 +14,7 @@ class TestAsyncExecutorClass:
     @pytest.mark.asyncio
     async def test_run_function_no_arguments(self):
         """Test run function with no arguments"""
+
         def simple_func():
             return "result"
 
@@ -23,6 +24,7 @@ class TestAsyncExecutorClass:
     @pytest.mark.asyncio
     async def test_run_function_with_positional_arguments(self):
         """Test run function with positional arguments"""
+
         def add_numbers(a, b, c):
             return a + b + c
 
@@ -32,14 +34,12 @@ class TestAsyncExecutorClass:
     @pytest.mark.asyncio
     async def test_run_function_with_keyword_arguments(self):
         """Test run function with keyword arguments"""
+
         def format_string(name, age, city):
             return f"{name} is {age} years old and lives in {city}"
 
         result = await AsyncExecutor.run(
-            format_string,
-            name="Alice",
-            age=30,
-            city="NYC"
+            format_string, name="Alice", age=30, city="NYC"
         )
         expected = "Alice is 30 years old and lives in NYC"
         assert result == expected
@@ -47,6 +47,7 @@ class TestAsyncExecutorClass:
     @pytest.mark.asyncio
     async def test_run_function_with_args_and_kwargs(self):
         """Test run function with both args and kwargs"""
+
         def mixed_args(a, b, multiply=1):
             return (a + b) * multiply
 
@@ -56,6 +57,7 @@ class TestAsyncExecutorClass:
     @pytest.mark.asyncio
     async def test_blocking_function_doesnt_block_event_loop(self):
         """Test blocking function doesn't block event loop"""
+
         def blocking_func(duration):
             time.sleep(duration)
             return "done"
@@ -77,6 +79,7 @@ class TestAsyncExecutorClass:
     @pytest.mark.asyncio
     async def test_exception_propagation(self):
         """Test exception propagation"""
+
         def failing_func():
             raise ValueError("Test error")
 
@@ -87,6 +90,7 @@ class TestAsyncExecutorClass:
     @pytest.mark.asyncio
     async def test_return_type_preservation(self):
         """Test return type preservation"""
+
         def return_dict():
             return {"key": "value", "number": 42}
 
@@ -102,6 +106,7 @@ class TestEdgeCases:
     @pytest.mark.asyncio
     async def test_function_returning_none(self):
         """Test function returning None"""
+
         def return_none():
             return None
 
@@ -111,6 +116,7 @@ class TestEdgeCases:
     @pytest.mark.asyncio
     async def test_function_with_default_arguments(self):
         """Test function with default arguments"""
+
         def with_defaults(a, b=10, c=20):
             return a + b + c
 
@@ -122,6 +128,7 @@ class TestEdgeCases:
     @pytest.mark.asyncio
     async def test_function_with_mutable_arguments(self):
         """Test function with mutable arguments"""
+
         def append_to_list(lst, value):
             lst.append(value)
             return lst
@@ -133,6 +140,7 @@ class TestEdgeCases:
     @pytest.mark.asyncio
     async def test_explicit_empty_kwargs(self):
         """Test explicit empty kwargs"""
+
         def simple_add(a, b):
             return a + b
 

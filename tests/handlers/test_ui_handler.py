@@ -18,6 +18,7 @@ from uv_forger.ui.dialog_data import (
 
 class MockControl:
     """Mock Flet control"""
+
     def __init__(self, value=None, label=None):
         self.value = value
         self.label = label
@@ -35,6 +36,7 @@ class MockControl:
 
 class MockContainer:
     """Mock Flet container"""
+
     def __init__(self):
         self.content = Mock()
         self.content.controls = []
@@ -43,6 +45,7 @@ class MockContainer:
 
 class MockText:
     """Mock Flet Text control"""
+
     def __init__(self, value=""):
         self.value = value
         self.color = None
@@ -50,6 +53,7 @@ class MockText:
 
 class MockPage:
     """Mock Flet Page"""
+
     def __init__(self):
         self.updated = False
         self.overlay = []
@@ -71,6 +75,7 @@ class MockPage:
 
 class MockControls:
     """Mock Controls class"""
+
     def __init__(self):
         self.warning_banner = MockText()
         self.path_preview_text = MockControl()
@@ -82,8 +87,12 @@ class MockControls:
         self.python_version_dropdown = MockControl(value=DEFAULT_PYTHON_VERSION)
         self.create_git_checkbox = MockControl(value=False)
         self.include_starter_files_checkbox = MockControl(value=False)
-        self.ui_project_checkbox = MockControl(value=False, label=UI_PROJECT_CHECKBOX_LABEL)
-        self.other_projects_checkbox = MockControl(value=False, label=OTHER_PROJECT_CHECKBOX_LABEL)
+        self.ui_project_checkbox = MockControl(
+            value=False, label=UI_PROJECT_CHECKBOX_LABEL
+        )
+        self.other_projects_checkbox = MockControl(
+            value=False, label=OTHER_PROJECT_CHECKBOX_LABEL
+        )
         self.save_as_preset_button = MockControl()
         self.app_subfolders_label = MockText()
         self.subfolders_container = MockContainer()
@@ -168,11 +177,14 @@ def test_set_warning_clear(mock_handlers):
     assert controls.warning_banner.value == ""
 
 
-@pytest.mark.parametrize("status_type,message", [
-    ("info", "Info message"),
-    ("success", "Success message"),
-    ("error", "Error message"),
-])
+@pytest.mark.parametrize(
+    "status_type,message",
+    [
+        ("info", "Info message"),
+        ("success", "Success message"),
+        ("error", "Error message"),
+    ],
+)
 def test_set_status_types(mock_handlers, status_type, message):
     """Test _set_status with different status types"""
     handlers, page, controls, state = mock_handlers
@@ -217,10 +229,10 @@ def test_update_folder_display_nested(mock_handlers):
             "name": "ui",
             "subfolders": [
                 {"name": "components", "subfolders": [], "files": []},
-                {"name": "styles", "subfolders": [], "files": []}
+                {"name": "styles", "subfolders": [], "files": []},
             ],
             "files": [],
-        }
+        },
     ]
     handlers._update_folder_display()
 
@@ -243,10 +255,7 @@ def test_create_item_container_folder(mock_handlers):
     handlers, page, controls, state = mock_handlers
 
     result = handlers._create_item_container(
-        name="core",
-        item_path=[0],
-        item_type="folder",
-        indent=0
+        name="core", item_path=[0], item_type="folder", indent=0
     )
 
     assert result is not None
@@ -266,10 +275,7 @@ def test_create_item_container_file(mock_handlers):
     handlers, page, controls, state = mock_handlers
 
     result = handlers._create_item_container(
-        name="config.py",
-        item_path=[0, "files", 0],
-        item_type="file",
-        indent=1
+        name="config.py", item_path=[0, "files", 0], item_type="file", indent=1
     )
 
     assert result is not None
@@ -288,10 +294,7 @@ def test_create_item_container_selected_folder(mock_handlers):
     state.selected_item_type = "folder"
 
     result = handlers._create_item_container(
-        name="core",
-        item_path=[0],
-        item_type="folder",
-        indent=0
+        name="core", item_path=[0], item_type="folder", indent=0
     )
 
     # Folder is wrapped in ContextMenu; inner container has selection highlighting
@@ -308,10 +311,7 @@ def test_create_item_container_selected_file(mock_handlers):
     state.selected_item_type = "file"
 
     result = handlers._create_item_container(
-        name="config.py",
-        item_path=[0, "files", 0],
-        item_type="file",
-        indent=1
+        name="config.py", item_path=[0, "files", 0], item_type="file", indent=1
     )
 
     # File items return ContextMenu; inner container has highlighting
@@ -328,10 +328,7 @@ def test_create_item_container_not_selected(mock_handlers):
     state.selected_item_type = "folder"
 
     result = handlers._create_item_container(
-        name="core",
-        item_path=[0],
-        item_type="folder",
-        indent=0
+        name="core", item_path=[0], item_type="folder", indent=0
     )
 
     # Folder wrapped in ContextMenu; inner container should NOT have highlighting
@@ -358,11 +355,7 @@ def test_process_folder_recursive_dict(mock_handlers):
     """Test _process_folder_recursive with dict folder"""
     handlers, page, controls, state = mock_handlers
 
-    folder_dict = {
-        "name": "ui",
-        "subfolders": [],
-        "files": []
-    }
+    folder_dict = {"name": "ui", "subfolders": [], "files": []}
     controls_list = []
     handlers._process_folder_recursive(folder_dict, [0], 0, controls_list)
 
@@ -383,11 +376,7 @@ def test_process_folder_recursive_with_files(mock_handlers):
     """Test _process_folder_recursive processes files correctly"""
     handlers, page, controls, state = mock_handlers
 
-    folder_dict = {
-        "name": "core",
-        "subfolders": [],
-        "files": ["config.py", "state.py"]
-    }
+    folder_dict = {"name": "core", "subfolders": [], "files": ["config.py", "state.py"]}
     controls_list = []
     handlers._process_folder_recursive(folder_dict, [0], 0, controls_list)
 
@@ -409,9 +398,9 @@ def test_process_folder_recursive_with_subfolders(mock_handlers):
         "name": "ui",
         "subfolders": [
             {"name": "components", "subfolders": [], "files": []},
-            {"name": "styles", "subfolders": [], "files": []}
+            {"name": "styles", "subfolders": [], "files": []},
         ],
-        "files": []
+        "files": [],
     }
     controls_list = []
     handlers._process_folder_recursive(folder_dict, [0], 0, controls_list)
@@ -430,13 +419,9 @@ def test_process_folder_recursive_nested_with_files(mock_handlers):
     folder_dict = {
         "name": "app",
         "subfolders": [
-            {
-                "name": "core",
-                "subfolders": [],
-                "files": ["state.py", "models.py"]
-            }
+            {"name": "core", "subfolders": [], "files": ["state.py", "models.py"]}
         ],
-        "files": ["main.py"]
+        "files": ["main.py"],
     }
     controls_list = []
     handlers._process_folder_recursive(folder_dict, [0], 0, controls_list)
@@ -526,7 +511,7 @@ def test_load_framework_template_default(mock_handlers):
     """Test loading default template (None framework)"""
     handlers, page, controls, state = mock_handlers
 
-    with patch.object(handlers.template_loader, 'load_config') as mock_load:
+    with patch.object(handlers.template_loader, "load_config") as mock_load:
         mock_load.return_value = {"folders": ["core", "ui", "utils"]}
         handlers._load_framework_template(None)
 
@@ -538,7 +523,7 @@ def test_load_framework_template_specific(mock_handlers):
     """Test loading framework-specific template"""
     handlers, page, controls, state = mock_handlers
 
-    with patch.object(handlers.template_loader, 'load_config') as mock_load:
+    with patch.object(handlers.template_loader, "load_config") as mock_load:
         mock_load.return_value = {"folders": ["app", "components", "styles"]}
         handlers._load_framework_template("flet")
 
@@ -550,7 +535,7 @@ def test_load_framework_template_updates_display(mock_handlers):
     """Test that folder display is updated after template load"""
     handlers, page, controls, state = mock_handlers
 
-    with patch.object(handlers.template_loader, 'load_config') as mock_load:
+    with patch.object(handlers.template_loader, "load_config") as mock_load:
         mock_load.return_value = {"folders": ["core", "ui"]}
         handlers._load_framework_template("test")
 
@@ -561,7 +546,7 @@ def test_load_framework_template_missing_folders_key(mock_handlers):
     """Test handling missing folders key in template"""
     handlers, page, controls, state = mock_handlers
 
-    with patch.object(handlers.template_loader, 'load_config') as mock_load:
+    with patch.object(handlers.template_loader, "load_config") as mock_load:
         mock_load.return_value = {}
         state.folders = ["old", "folders"]
         handlers._load_framework_template("unknown")
@@ -577,8 +562,10 @@ async def test_wrap_async_creates_callable():
 
     def wrap_async(coro_func):
         """Wrap async handler for Flet event system."""
+
         def wrapper(e):
             asyncio.create_task(coro_func(e))
+
         return wrapper
 
     async def test_coro(e):
@@ -588,14 +575,17 @@ async def test_wrap_async_creates_callable():
     assert callable(wrapped)
 
 
-@pytest.mark.parametrize("field,value", [
-    ("python_version", "3.11"),
-    ("git_enabled", True),
-    ("ui_project_enabled", True),
-    ("framework", "flet"),
-    ("other_project_enabled", True),
-    ("project_type", "django"),
-])
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("python_version", "3.11"),
+        ("git_enabled", True),
+        ("ui_project_enabled", True),
+        ("framework", "flet"),
+        ("other_project_enabled", True),
+        ("project_type", "django"),
+    ],
+)
 def test_state_updates_from_handlers(mock_handlers, field, value):
     """Test that handler methods properly update state"""
     handlers, page, controls, state = mock_handlers
@@ -619,18 +609,18 @@ async def test_on_other_project_toggle_checked(mock_handlers):
     mock_event.control = MockControl(value=False, label=OTHER_PROJECT_CHECKBOX_LABEL)
 
     # Mock the dialog show method to avoid Flet dependencies
-    with patch.object(handlers, '_show_project_type_dialog') as mock_show:
+    with patch.object(handlers, "_show_project_type_dialog") as mock_show:
         await handlers.on_other_project_toggle(mock_event)
 
     # Handler always forces checkbox to True and opens dialog
-    assert mock_event.control.value == True
-    assert state.other_project_enabled == True
+    assert mock_event.control.value
+    assert state.other_project_enabled
 
     # Verify dialog was shown
     mock_show.assert_called_once()
 
     # Verify page was updated
-    assert page.updated == True
+    assert page.updated
 
 
 @pytest.mark.asyncio
@@ -646,16 +636,16 @@ async def test_on_other_project_toggle_reopens_dialog(mock_handlers):
     mock_event = Mock()
     mock_event.control = MockControl(value=False, label="Project: Django")
 
-    with patch.object(handlers, '_show_project_type_dialog') as mock_show:
+    with patch.object(handlers, "_show_project_type_dialog") as mock_show:
         await handlers.on_other_project_toggle(mock_event)
 
     # Handler forces checkbox to True and opens dialog
-    assert mock_event.control.value == True
-    assert state.other_project_enabled == True
+    assert mock_event.control.value
+    assert state.other_project_enabled
 
     # Dialog was shown (user can select None to clear)
     mock_show.assert_called_once()
-    assert page.updated == True
+    assert page.updated
 
 
 @pytest.mark.asyncio
@@ -673,16 +663,16 @@ async def test_on_other_project_toggle_does_not_uncheck_ui(mock_handlers):
     mock_event.control = MockControl(value=True, label=OTHER_PROJECT_CHECKBOX_LABEL)
 
     # Mock the dialog show method
-    with patch.object(handlers, '_show_project_type_dialog'):
+    with patch.object(handlers, "_show_project_type_dialog"):
         await handlers.on_other_project_toggle(mock_event)
 
     # Verify UI project state is UNCHANGED
-    assert state.ui_project_enabled == True
-    assert controls.ui_project_checkbox.value == True
+    assert state.ui_project_enabled
+    assert controls.ui_project_checkbox.value
     assert state.framework == "flet"
 
     # Verify Other project is now checked
-    assert state.other_project_enabled == True
+    assert state.other_project_enabled
 
 
 def test_load_project_type_template_with_type(mock_handlers):
@@ -690,10 +680,8 @@ def test_load_project_type_template_with_type(mock_handlers):
     handlers, page, controls, state = mock_handlers
 
     # Mock the config manager
-    with patch.object(handlers.template_loader, 'load_config') as mock_load:
-        mock_load.return_value = {
-            "folders": ["api", "core", "models"]
-        }
+    with patch.object(handlers.template_loader, "load_config") as mock_load:
+        mock_load.return_value = {"folders": ["api", "core", "models"]}
 
         handlers._load_project_type_template("django")
 
@@ -712,10 +700,8 @@ def test_load_project_type_template_none(mock_handlers):
     state.folders = [{"name": "old", "subfolders": [], "files": []}]
 
     # Mock the config manager
-    with patch.object(handlers.template_loader, 'load_config') as mock_load:
-        mock_load.return_value = {
-            "folders": ["default", "folders"]
-        }
+    with patch.object(handlers.template_loader, "load_config") as mock_load:
+        mock_load.return_value = {"folders": ["default", "folders"]}
 
         handlers._load_project_type_template(None)
 
@@ -726,19 +712,24 @@ def test_load_project_type_template_none(mock_handlers):
         assert [f["name"] for f in state.folders] == ["default", "folders"]
 
 
-@pytest.mark.parametrize("project_type,expected_path", [
-    ("django", "project_types/django"),
-    ("fastapi", "project_types/fastapi"),
-    ("flask", "project_types/flask"),
-    ("data_analysis", "project_types/data_analysis"),
-    ("cli_typer", "project_types/cli_typer"),
-    ("scraping", "project_types/scraping"),
-])
-def test_load_project_type_template_various_types(mock_handlers, project_type, expected_path):
+@pytest.mark.parametrize(
+    "project_type,expected_path",
+    [
+        ("django", "project_types/django"),
+        ("fastapi", "project_types/fastapi"),
+        ("flask", "project_types/flask"),
+        ("data_analysis", "project_types/data_analysis"),
+        ("cli_typer", "project_types/cli_typer"),
+        ("scraping", "project_types/scraping"),
+    ],
+)
+def test_load_project_type_template_various_types(
+    mock_handlers, project_type, expected_path
+):
     """Test loading various project type templates"""
     handlers, page, controls, state = mock_handlers
 
-    with patch.object(handlers.template_loader, 'load_config') as mock_load:
+    with patch.object(handlers.template_loader, "load_config") as mock_load:
         mock_load.return_value = {"folders": []}
 
         handlers._load_project_type_template(project_type)
@@ -752,7 +743,7 @@ def test_show_project_type_dialog_adds_to_overlay(mock_handlers):
     handlers, page, controls, state = mock_handlers
 
     # Mock the dialog creation
-    with patch('uv_forger.ui.dialogs.create_project_type_dialog') as mock_create:
+    with patch("uv_forger.ui.dialogs.create_project_type_dialog") as mock_create:
         mock_dialog = Mock()
         mock_dialog.open = False
         mock_create.return_value = mock_dialog
@@ -762,19 +753,19 @@ def test_show_project_type_dialog_adds_to_overlay(mock_handlers):
         # Verify dialog was created with correct params
         mock_create.assert_called_once()
         call_kwargs = mock_create.call_args[1]
-        assert 'on_select_callback' in call_kwargs
-        assert 'on_close_callback' in call_kwargs
-        assert call_kwargs['current_selection'] == state.project_type
-        assert call_kwargs['is_dark_mode'] == state.is_dark_mode
+        assert "on_select_callback" in call_kwargs
+        assert "on_close_callback" in call_kwargs
+        assert call_kwargs["current_selection"] == state.project_type
+        assert call_kwargs["is_dark_mode"] == state.is_dark_mode
 
         # Verify dialog was added to overlay
         assert mock_dialog in page.overlay
 
         # Verify dialog was opened
-        assert mock_dialog.open == True
+        assert mock_dialog.open
 
         # Verify page was updated
-        assert page.updated == True
+        assert page.updated
 
 
 @pytest.mark.asyncio
@@ -792,12 +783,12 @@ async def test_ui_project_toggle_does_not_uncheck_other_project(mock_handlers):
     mock_event.control = MockControl(value=False, label=UI_PROJECT_CHECKBOX_LABEL)
 
     # Mock the dialog show method
-    with patch.object(handlers, '_show_framework_dialog'):
+    with patch.object(handlers, "_show_framework_dialog"):
         await handlers.on_ui_project_toggle(mock_event)
 
     # Verify Other project state is UNCHANGED
-    assert state.other_project_enabled == True
-    assert controls.other_projects_checkbox.value == True
+    assert state.other_project_enabled
+    assert controls.other_projects_checkbox.value
     assert state.project_type == "django"
 
 
@@ -814,8 +805,8 @@ def test_both_checkboxes_can_be_checked(mock_handlers):
     state.project_type = "django"
 
     # Both should remain true
-    assert state.ui_project_enabled == True
-    assert state.other_project_enabled == True
+    assert state.ui_project_enabled
+    assert state.other_project_enabled
     assert state.framework == "flet"
     assert state.project_type == "django"
 
@@ -829,13 +820,15 @@ def test_reload_and_merge_templates_both_selected(mock_handlers):
     state.other_project_enabled = True
     state.project_type = "django"
 
-    with patch.object(handlers.template_loader, 'load_config') as mock_load:
+    with patch.object(handlers.template_loader, "load_config") as mock_load:
         mock_load.side_effect = [
             {"folders": [{"name": "ui", "subfolders": [], "files": []}]},
             {"folders": [{"name": "api", "subfolders": [], "files": []}]},
         ]
 
-        with patch('uv_forger.handlers.option_handlers.merge_folder_lists') as mock_merge:
+        with patch(
+            "uv_forger.handlers.option_handlers.merge_folder_lists"
+        ) as mock_merge:
             mock_merge.return_value = [
                 {"name": "ui", "subfolders": [], "files": []},
                 {"name": "api", "subfolders": [], "files": []},
@@ -858,7 +851,7 @@ def test_reload_and_merge_templates_only_framework(mock_handlers):
     state.framework = "flet"
     state.other_project_enabled = False
 
-    with patch.object(handlers.template_loader, 'load_config') as mock_load:
+    with patch.object(handlers.template_loader, "load_config") as mock_load:
         mock_load.return_value = {"folders": ["core", "ui"]}
         handlers._reload_and_merge_templates()
 
@@ -874,7 +867,7 @@ def test_reload_and_merge_templates_only_project_type(mock_handlers):
     state.other_project_enabled = True
     state.project_type = "django"
 
-    with patch.object(handlers.template_loader, 'load_config') as mock_load:
+    with patch.object(handlers.template_loader, "load_config") as mock_load:
         mock_load.return_value = {"folders": ["api", "models"]}
         handlers._reload_and_merge_templates()
 
@@ -889,7 +882,7 @@ def test_reload_and_merge_templates_neither_selected(mock_handlers):
     state.ui_project_enabled = False
     state.other_project_enabled = False
 
-    with patch.object(handlers.template_loader, 'load_config') as mock_load:
+    with patch.object(handlers.template_loader, "load_config") as mock_load:
         mock_load.return_value = {"folders": ["default1", "default2"]}
         handlers._reload_and_merge_templates()
 
@@ -901,7 +894,9 @@ def test_show_framework_dialog_adds_to_overlay(mock_handlers):
     """Test that framework dialog is added to page overlay"""
     handlers, page, controls, state = mock_handlers
 
-    with patch('uv_forger.handlers.option_handlers.create_framework_dialog') as mock_create:
+    with patch(
+        "uv_forger.handlers.option_handlers.create_framework_dialog"
+    ) as mock_create:
         mock_dialog = Mock()
         mock_dialog.open = False
         mock_create.return_value = mock_dialog
@@ -911,15 +906,15 @@ def test_show_framework_dialog_adds_to_overlay(mock_handlers):
         # Verify dialog was created with correct params
         mock_create.assert_called_once()
         call_kwargs = mock_create.call_args[1]
-        assert 'on_select_callback' in call_kwargs
-        assert 'on_close_callback' in call_kwargs
-        assert call_kwargs['current_selection'] == state.framework
-        assert call_kwargs['is_dark_mode'] == state.is_dark_mode
+        assert "on_select_callback" in call_kwargs
+        assert "on_close_callback" in call_kwargs
+        assert call_kwargs["current_selection"] == state.framework
+        assert call_kwargs["is_dark_mode"] == state.is_dark_mode
 
         # Verify dialog was added to overlay and opened
         assert mock_dialog in page.overlay
-        assert mock_dialog.open == True
-        assert page.updated == True
+        assert mock_dialog.open
+        assert page.updated
 
 
 @pytest.mark.asyncio
@@ -932,18 +927,18 @@ async def test_reset_with_both_checked(mock_handlers):
     state.other_project_enabled = True
     state.project_type = "django"
 
-    with patch.object(handlers, '_reload_and_merge_templates') as mock_reload:
+    with patch.object(handlers, "_reload_and_merge_templates") as mock_reload:
         await handlers._do_reset()
 
         mock_reload.assert_called_once()
 
     # Verify state was reset
-    assert state.ui_project_enabled == False
-    assert state.other_project_enabled == False
+    assert not state.ui_project_enabled
+    assert not state.other_project_enabled
     assert state.framework is None
     assert state.project_type is None
-    assert controls.ui_project_checkbox.value == False
-    assert controls.other_projects_checkbox.value == False
+    assert not controls.ui_project_checkbox.value
+    assert not controls.other_projects_checkbox.value
 
 
 def test_reload_and_merge_clears_selection(mock_handlers):
@@ -955,7 +950,7 @@ def test_reload_and_merge_clears_selection(mock_handlers):
     state.ui_project_enabled = False
     state.other_project_enabled = False
 
-    with patch.object(handlers.template_loader, 'load_config') as mock_load:
+    with patch.object(handlers.template_loader, "load_config") as mock_load:
         mock_load.return_value = {"folders": ["core"]}
         handlers._reload_and_merge_templates()
 
@@ -1003,7 +998,11 @@ def test_count_folders_and_files_nested(mock_handlers):
             "name": "app",
             "subfolders": [
                 {"name": "core", "subfolders": [], "files": ["state.py"]},
-                {"name": "ui", "subfolders": [], "files": ["components.py", "theme.py"]},
+                {
+                    "name": "ui",
+                    "subfolders": [],
+                    "files": ["components.py", "theme.py"],
+                },
             ],
             "files": ["main.py"],
         }
@@ -1017,9 +1016,13 @@ def test_count_folders_and_files_nested_dicts(mock_handlers):
     """Test _count_folders_and_files with nested dict structures"""
     folders = [
         {"name": "core", "subfolders": [], "files": ["state.py", "models.py"]},
-        {"name": "ui", "subfolders": [
-            {"name": "widgets", "subfolders": [], "files": ["button.py"]},
-        ], "files": []},
+        {
+            "name": "ui",
+            "subfolders": [
+                {"name": "widgets", "subfolders": [], "files": ["button.py"]},
+            ],
+            "files": [],
+        },
     ]
     fc, fic = Handlers._count_folders_and_files(folders)
     assert fc == 3  # core, ui, widgets
@@ -1154,7 +1157,7 @@ def test_update_build_button_state_both_valid(mock_handlers):
     state.name_valid = True
     handlers._update_build_button_state()
 
-    assert controls.build_project_button.disabled == False
+    assert not controls.build_project_button.disabled
     assert controls.build_project_button.opacity == 1.0
     assert "Ctrl+Enter" in controls.build_project_button.tooltip
 
@@ -1167,7 +1170,7 @@ def test_update_build_button_state_name_invalid(mock_handlers):
     state.name_valid = False
     handlers._update_build_button_state()
 
-    assert controls.build_project_button.disabled == True
+    assert controls.build_project_button.disabled
     assert controls.build_project_button.opacity == 0.5
 
 
@@ -1179,7 +1182,7 @@ def test_update_build_button_state_path_invalid(mock_handlers):
     state.name_valid = True
     handlers._update_build_button_state()
 
-    assert controls.build_project_button.disabled == True
+    assert controls.build_project_button.disabled
     assert controls.build_project_button.opacity == 0.5
 
 
@@ -1191,7 +1194,7 @@ def test_update_build_button_state_both_invalid(mock_handlers):
     state.name_valid = False
     handlers._update_build_button_state()
 
-    assert controls.build_project_button.disabled == True
+    assert controls.build_project_button.disabled
     assert controls.build_project_button.opacity == 0.5
 
 
@@ -1225,7 +1228,7 @@ def test_create_build_summary_dialog_basic():
     )
 
     assert dialog is not None
-    assert dialog.modal == True
+    assert dialog.modal
     assert len(dialog.actions) == 2
 
 
@@ -1258,7 +1261,11 @@ def test_create_build_summary_dialog_with_framework():
     # Check that the dialog content includes the framework info
     # Left column is the first control in the two-column Row layout
     controls = dialog.content.content.controls[0].controls
-    labels = [r.controls[0].value for r in controls if hasattr(r, "controls") and hasattr(r.controls[0], "value")]
+    labels = [
+        r.controls[0].value
+        for r in controls
+        if hasattr(r, "controls") and hasattr(r.controls[0], "value")
+    ]
     assert "UI Framework:" in labels
 
 
@@ -1290,7 +1297,11 @@ def test_create_build_summary_dialog_with_project_type():
 
     # Left column is the first control in the two-column Row layout
     controls = dialog.content.content.controls[0].controls
-    labels = [r.controls[0].value for r in controls if hasattr(r, "controls") and hasattr(r.controls[0], "value")]
+    labels = [
+        r.controls[0].value
+        for r in controls
+        if hasattr(r, "controls") and hasattr(r.controls[0], "value")
+    ]
     assert "Project Type:" in labels
 
 
@@ -1336,7 +1347,7 @@ async def test_keyboard_ctrl_enter_triggers_build(mock_handlers):
     mock_event.ctrl = True
     mock_event.meta = False
 
-    with patch.object(handlers, 'on_build_project') as mock_build:
+    with patch.object(handlers, "on_build_project") as mock_build:
         await handlers.on_keyboard_event(mock_event)
         mock_build.assert_called_once_with(mock_event)
 
@@ -1355,7 +1366,7 @@ async def test_keyboard_meta_enter_triggers_build(mock_handlers):
     mock_event.ctrl = False
     mock_event.meta = True
 
-    with patch.object(handlers, 'on_build_project') as mock_build:
+    with patch.object(handlers, "on_build_project") as mock_build:
         await handlers.on_keyboard_event(mock_event)
         mock_build.assert_called_once_with(mock_event)
 
@@ -1374,7 +1385,7 @@ async def test_keyboard_enter_ignored_when_invalid(mock_handlers):
     mock_event.ctrl = True
     mock_event.meta = False
 
-    with patch.object(handlers, 'on_build_project') as mock_build:
+    with patch.object(handlers, "on_build_project") as mock_build:
         await handlers.on_keyboard_event(mock_event)
         mock_build.assert_not_called()
 
@@ -1393,7 +1404,7 @@ async def test_keyboard_enter_ignored_when_button_disabled(mock_handlers):
     mock_event.ctrl = True
     mock_event.meta = False
 
-    with patch.object(handlers, 'on_build_project') as mock_build:
+    with patch.object(handlers, "on_build_project") as mock_build:
         await handlers.on_keyboard_event(mock_event)
         mock_build.assert_not_called()
 
@@ -1412,7 +1423,7 @@ async def test_keyboard_other_keys_ignored(mock_handlers):
     mock_event.ctrl = True
     mock_event.meta = False
 
-    with patch.object(handlers, 'on_build_project') as mock_build:
+    with patch.object(handlers, "on_build_project") as mock_build:
         await handlers.on_keyboard_event(mock_event)
         mock_build.assert_not_called()
 
@@ -1429,7 +1440,7 @@ async def test_reset_clears_validation_icons(mock_handlers):
     controls.project_path_input.suffix = "something"
     controls.project_name_input.suffix = "something"
 
-    with patch.object(handlers, '_reload_and_merge_templates'):
+    with patch.object(handlers, "_reload_and_merge_templates"):
         await handlers._do_reset()
 
     # Path should get valid icon (default path is valid)
@@ -1437,7 +1448,7 @@ async def test_reset_clears_validation_icons(mock_handlers):
     # Name should be cleared (empty after reset)
     assert controls.project_name_input.suffix is None
     # Build button should be disabled (no name)
-    assert controls.build_project_button.disabled == True
+    assert controls.build_project_button.disabled
     assert controls.build_project_button.opacity == 0.5
 
 
@@ -1452,14 +1463,14 @@ async def test_on_ui_project_toggle_opens_dialog(mock_handlers):
     mock_event = Mock()
     mock_event.control = MockControl(value=False, label=UI_PROJECT_CHECKBOX_LABEL)
 
-    with patch.object(handlers, '_show_framework_dialog') as mock_show:
+    with patch.object(handlers, "_show_framework_dialog") as mock_show:
         await handlers.on_ui_project_toggle(mock_event)
 
     # Handler forces checkbox to True and opens dialog
-    assert mock_event.control.value == True
-    assert state.ui_project_enabled == True
+    assert mock_event.control.value
+    assert state.ui_project_enabled
     mock_show.assert_called_once()
-    assert page.updated == True
+    assert page.updated
 
 
 @pytest.mark.asyncio
@@ -1474,12 +1485,12 @@ async def test_on_ui_project_toggle_reopens_dialog(mock_handlers):
     mock_event = Mock()
     mock_event.control = MockControl(value=True, label="UI Project: flet")
 
-    with patch.object(handlers, '_show_framework_dialog') as mock_show:
+    with patch.object(handlers, "_show_framework_dialog") as mock_show:
         await handlers.on_ui_project_toggle(mock_event)
 
     # Still opens dialog for re-selection
     mock_show.assert_called_once()
-    assert mock_event.control.value == True
+    assert mock_event.control.value
 
 
 # ========== Framework Dialog Callback Tests ==========
@@ -1489,7 +1500,9 @@ def test_framework_dialog_on_select_sets_state(mock_handlers):
     """Test framework dialog on_select callback sets framework and reloads templates"""
     handlers, page, controls, state = mock_handlers
 
-    with patch('uv_forger.handlers.option_handlers.create_framework_dialog') as mock_create:
+    with patch(
+        "uv_forger.handlers.option_handlers.create_framework_dialog"
+    ) as mock_create:
         mock_dialog = Mock()
         mock_dialog.open = True
         mock_create.return_value = mock_dialog
@@ -1497,15 +1510,15 @@ def test_framework_dialog_on_select_sets_state(mock_handlers):
         handlers._show_framework_dialog()
 
         # Get the on_select callback
-        on_select = mock_create.call_args[1]['on_select_callback']
+        on_select = mock_create.call_args[1]["on_select_callback"]
 
     # Simulate selecting a framework
-    with patch.object(handlers, '_reload_and_merge_templates'):
+    with patch.object(handlers, "_reload_and_merge_templates"):
         on_select("flet")
 
     assert state.framework == "flet"
     assert controls.ui_project_checkbox.label == "UI Framework: flet"
-    assert mock_dialog.open == False
+    assert not mock_dialog.open
 
 
 def test_framework_dialog_on_select_none_clears_state(mock_handlers):
@@ -1518,24 +1531,26 @@ def test_framework_dialog_on_select_none_clears_state(mock_handlers):
     controls.ui_project_checkbox.value = True
     controls.ui_project_checkbox.label = "UI Project: flet"
 
-    with patch('uv_forger.handlers.option_handlers.create_framework_dialog') as mock_create:
+    with patch(
+        "uv_forger.handlers.option_handlers.create_framework_dialog"
+    ) as mock_create:
         mock_dialog = Mock()
         mock_dialog.open = True
         mock_create.return_value = mock_dialog
 
         handlers._show_framework_dialog()
 
-        on_select = mock_create.call_args[1]['on_select_callback']
+        on_select = mock_create.call_args[1]["on_select_callback"]
 
     # Simulate selecting None
-    with patch.object(handlers, '_reload_and_merge_templates'):
+    with patch.object(handlers, "_reload_and_merge_templates"):
         on_select(None)
 
     assert state.framework is None
-    assert state.ui_project_enabled == False
-    assert controls.ui_project_checkbox.value == False
+    assert not state.ui_project_enabled
+    assert not controls.ui_project_checkbox.value
     assert controls.ui_project_checkbox.label == UI_PROJECT_CHECKBOX_LABEL
-    assert mock_dialog.open == False
+    assert not mock_dialog.open
 
 
 def test_framework_dialog_on_close_unchecks_when_no_prior_selection(mock_handlers):
@@ -1547,21 +1562,23 @@ def test_framework_dialog_on_close_unchecks_when_no_prior_selection(mock_handler
     state.framework = None
     controls.ui_project_checkbox.value = True
 
-    with patch('uv_forger.handlers.option_handlers.create_framework_dialog') as mock_create:
+    with patch(
+        "uv_forger.handlers.option_handlers.create_framework_dialog"
+    ) as mock_create:
         mock_dialog = Mock()
         mock_dialog.open = True
         mock_create.return_value = mock_dialog
 
         handlers._show_framework_dialog()
 
-        on_close = mock_create.call_args[1]['on_close_callback']
+        on_close = mock_create.call_args[1]["on_close_callback"]
 
     on_close(None)
 
-    assert state.ui_project_enabled == False
-    assert controls.ui_project_checkbox.value == False
+    assert not state.ui_project_enabled
+    assert not controls.ui_project_checkbox.value
     assert controls.ui_project_checkbox.label == UI_PROJECT_CHECKBOX_LABEL
-    assert mock_dialog.open == False
+    assert not mock_dialog.open
 
 
 def test_framework_dialog_on_close_keeps_prior_selection(mock_handlers):
@@ -1574,22 +1591,24 @@ def test_framework_dialog_on_close_keeps_prior_selection(mock_handlers):
     controls.ui_project_checkbox.value = True
     controls.ui_project_checkbox.label = "UI Project: PyQt6"
 
-    with patch('uv_forger.handlers.option_handlers.create_framework_dialog') as mock_create:
+    with patch(
+        "uv_forger.handlers.option_handlers.create_framework_dialog"
+    ) as mock_create:
         mock_dialog = Mock()
         mock_dialog.open = True
         mock_create.return_value = mock_dialog
 
         handlers._show_framework_dialog()
 
-        on_close = mock_create.call_args[1]['on_close_callback']
+        on_close = mock_create.call_args[1]["on_close_callback"]
 
     on_close(None)
 
     # Should keep everything as-is
-    assert state.ui_project_enabled == True
+    assert state.ui_project_enabled
     assert state.framework == "PyQt6"
-    assert controls.ui_project_checkbox.value == True
-    assert mock_dialog.open == False
+    assert controls.ui_project_checkbox.value
+    assert not mock_dialog.open
 
 
 # ========== Project Type Dialog None Selection Tests ==========
@@ -1605,24 +1624,24 @@ def test_project_type_dialog_on_select_none_clears_state(mock_handlers):
     controls.other_projects_checkbox.value = True
     controls.other_projects_checkbox.label = "Project: Django"
 
-    with patch('uv_forger.ui.dialogs.create_project_type_dialog') as mock_create:
+    with patch("uv_forger.ui.dialogs.create_project_type_dialog") as mock_create:
         mock_dialog = Mock()
         mock_dialog.open = True
         mock_create.return_value = mock_dialog
 
         handlers._show_project_type_dialog()
 
-        on_select = mock_create.call_args[1]['on_select_callback']
+        on_select = mock_create.call_args[1]["on_select_callback"]
 
     # Simulate selecting None
-    with patch.object(handlers, '_reload_and_merge_templates'):
+    with patch.object(handlers, "_reload_and_merge_templates"):
         on_select(None)
 
     assert state.project_type is None
-    assert state.other_project_enabled == False
-    assert controls.other_projects_checkbox.value == False
+    assert not state.other_project_enabled
+    assert not controls.other_projects_checkbox.value
     assert controls.other_projects_checkbox.label == OTHER_PROJECT_CHECKBOX_LABEL
-    assert mock_dialog.open == False
+    assert not mock_dialog.open
 
 
 @pytest.mark.asyncio
@@ -1641,13 +1660,13 @@ async def test_reset_clears_both_checkbox_labels(mock_handlers):
     controls.other_projects_checkbox.value = True
     controls.other_projects_checkbox.label = "Project: Django"
 
-    with patch.object(handlers, '_reload_and_merge_templates'):
+    with patch.object(handlers, "_reload_and_merge_templates"):
         await handlers._do_reset()
 
     assert controls.ui_project_checkbox.label == UI_PROJECT_CHECKBOX_LABEL
     assert controls.other_projects_checkbox.label == OTHER_PROJECT_CHECKBOX_LABEL
-    assert controls.ui_project_checkbox.value == False
-    assert controls.other_projects_checkbox.value == False
+    assert not controls.ui_project_checkbox.value
+    assert not controls.other_projects_checkbox.value
 
 
 # --- Package Management Tests ---

@@ -31,7 +31,7 @@ def test_create_project_type_dialog_basic():
     )
 
     assert isinstance(dialog, ft.AlertDialog)
-    assert dialog.modal == True
+    assert dialog.modal
     assert dialog.title is not None
     assert dialog.content is not None
     assert dialog.actions is not None
@@ -142,7 +142,7 @@ def test_create_project_type_dialog_has_project_types():
     radio_values = []
     for control in column.controls:
         if isinstance(control, ft.Container) and isinstance(control.content, ft.Radio):
-                radio_values.append(control.content.value)
+            radio_values.append(control.content.value)
 
     # Check for expected project types
     assert "django" in radio_values
@@ -153,17 +153,20 @@ def test_create_project_type_dialog_has_project_types():
     assert "scraping" in radio_values
 
 
-@pytest.mark.parametrize("project_type", [
-    "django",
-    "fastapi",
-    "flask",
-    "bottle",
-    "data_analysis",
-    "ml_sklearn",
-    "cli_click",
-    "cli_typer",
-    "scraping",
-])
+@pytest.mark.parametrize(
+    "project_type",
+    [
+        "django",
+        "fastapi",
+        "flask",
+        "bottle",
+        "data_analysis",
+        "ml_sklearn",
+        "cli_click",
+        "cli_typer",
+        "scraping",
+    ],
+)
 def test_create_project_type_dialog_various_selections(project_type):
     """Test dialog can be created with various project type selections"""
     dialog = create_project_type_dialog(
@@ -405,7 +408,7 @@ def test_tree_create_init_true_shows_init_py():
     )
     lines = build_project_tree_lines(config)
     # Find __init__.py under core/
-    core_idx = next(i for i, l in enumerate(lines) if "core/" in l)
+    core_idx = next(i for i, line in enumerate(lines) if "core/" in line)
     assert "__init__.py" in lines[core_idx + 1]
 
 
@@ -423,7 +426,7 @@ def test_tree_create_init_false_no_init_py():
     )
     lines = build_project_tree_lines(config)
     # Find the line after assets/
-    assets_idx = next(i for i, l in enumerate(lines) if "assets/" in l)
+    assets_idx = next(i for i, line in enumerate(lines) if "assets/" in line)
     assert "logo.png" in lines[assets_idx + 1]
     # No __init__.py between assets/ and logo.png
     assert "__init__" not in lines[assets_idx + 1]
@@ -470,13 +473,15 @@ def test_tree_root_level_folders():
         ]
     )
     lines = build_project_tree_lines(config)
-    text = "\n".join(lines)
+    "\n".join(lines)
     # tests/ should be at root level (same indent as app/)
     # Find the app/ line and tests/ line — they should have the same prefix depth
-    app_line = next(l for l in lines if "app/" in l)
-    tests_line = next(l for l in lines if "tests/" in l)
-    app_prefix = len(app_line) - len(app_line.lstrip("│├└── "))
-    tests_prefix = len(tests_line) - len(tests_line.lstrip("│├└── "))
+    import re
+
+    app_line = next(line for line in lines if "app/" in line)
+    tests_line = next(line for line in lines if "tests/" in line)
+    app_prefix = len(re.match(r"^[│├└── ]*", app_line).group())
+    tests_prefix = len(re.match(r"^[│├└── ]*", tests_line).group())
     assert app_prefix == tests_prefix
 
 
@@ -570,7 +575,7 @@ def test_parse_log_line_standard():
 
 def test_parse_log_line_continuation():
     """Test non-standard lines (tracebacks) render as plain text."""
-    line = "  File \"/app/main.py\", line 10, in start"
+    line = '  File "/app/main.py", line 10, in start'
     row = _parse_log_line(line, is_dark_mode=True)
 
     assert isinstance(row, ft.Row)

@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-import pytest
-
-from uv_forger.core.tree_parser import TreeParseResult, parse_tree_text, parse_tree_text_full
-
+from uv_forger.core.tree_parser import (
+    TreeParseResult,
+    parse_tree_text,
+    parse_tree_text_full,
+)
 
 # ── Empty / trivial input ────────────────────────────────────────────
 

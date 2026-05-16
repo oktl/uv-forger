@@ -2,18 +2,18 @@
 """Pytest tests for constants.py — structural consistency checks."""
 
 from uv_forger.core.constants import (
+    BOILERPLATE_DIR,
     DEFAULT_FRAMEWORK,
     DEFAULT_PYTHON_VERSION,
     FRAMEWORK_ENTRY_POINT_MAP,
     FRAMEWORK_PACKAGE_MAP,
     PROJECT_TYPE_ENTRY_POINT_MAP,
     PROJECT_TYPE_PACKAGE_MAP,
+    PROJECT_TYPE_TEMPLATES_DIR,
     PYTHON_VERSIONS,
     TEMPLATES_DIR,
     UI_FRAMEWORKS,
     UI_TEMPLATES_DIR,
-    PROJECT_TYPE_TEMPLATES_DIR,
-    BOILERPLATE_DIR,
 )
 
 
@@ -49,7 +49,9 @@ def test_framework_entry_point_map_matches_ui_frameworks():
 
 def test_project_type_maps_are_consistent():
     """PROJECT_TYPE_PACKAGE_MAP and PROJECT_TYPE_ENTRY_POINT_MAP must have the same keys."""
-    assert set(PROJECT_TYPE_PACKAGE_MAP.keys()) == set(PROJECT_TYPE_ENTRY_POINT_MAP.keys())
+    assert set(PROJECT_TYPE_PACKAGE_MAP.keys()) == set(
+        PROJECT_TYPE_ENTRY_POINT_MAP.keys()
+    )
 
 
 def test_templates_directory_exists():

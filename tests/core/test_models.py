@@ -3,16 +3,22 @@
 
 from pathlib import Path
 
-from uv_forger.core.models import BuildResult, BuildSummaryConfig, FolderSpec, ProjectConfig
+from uv_forger.core.models import (
+    BuildResult,
+    BuildSummaryConfig,
+    FolderSpec,
+    ProjectConfig,
+)
 
 # FolderSpec Tests
+
 
 def test_folder_spec_basic_creation():
     """Test basic FolderSpec creation with defaults"""
     folder = FolderSpec(name="test_folder")
     assert folder.name == "test_folder"
-    assert folder.create_init == True
-    assert folder.root_level == False
+    assert folder.create_init
+    assert not folder.root_level
 
 
 def test_folder_spec_all_parameters():
@@ -22,11 +28,11 @@ def test_folder_spec_all_parameters():
         create_init=False,
         root_level=True,
         subfolders=["sub1", "sub2"],
-        files=["file1.py", "file2.py"]
+        files=["file1.py", "file2.py"],
     )
     assert folder.name == "custom"
-    assert folder.create_init == False
-    assert folder.root_level == True
+    assert not folder.create_init
+    assert folder.root_level
     assert len(folder.subfolders) == 2
     assert len(folder.files) == 2
 
@@ -34,16 +40,13 @@ def test_folder_spec_all_parameters():
 def test_folder_spec_to_dict():
     """Test FolderSpec.to_dict()"""
     folder = FolderSpec(
-        name="handlers",
-        create_init=False,
-        root_level=True,
-        files=["git_handler.py"]
+        name="handlers", create_init=False, root_level=True, files=["git_handler.py"]
     )
     result = folder.to_dict()
     assert isinstance(result, dict)
     assert result["name"] == "handlers"
-    assert result["create_init"] == False
-    assert result["root_level"] == True
+    assert not result["create_init"]
+    assert result["root_level"]
     assert len(result["files"]) == 1
 
 
@@ -53,7 +56,7 @@ def test_folder_spec_to_dict_omits_defaults():
     result = folder.to_dict()
     assert result == {"name": "minimal"}
     assert "create_init" not in result  # True is default, omitted
-    assert "root_level" not in result   # False is default, omitted
+    assert "root_level" not in result  # False is default, omitted
     assert "subfolders" not in result
     assert "files" not in result
 
@@ -71,6 +74,7 @@ def test_folder_spec_to_dict_nested():
 
 # ProjectConfig Tests
 
+
 def test_project_config_basic_creation():
     """Test basic ProjectConfig creation"""
     config = ProjectConfig(
@@ -84,7 +88,7 @@ def test_project_config_basic_creation():
     assert config.project_name == "my_project"
     assert config.project_path == Path("/tmp")
     assert config.python_version == "3.14"
-    assert config.git_enabled == True
+    assert config.git_enabled
 
 
 def test_project_config_full_path():
@@ -160,7 +164,7 @@ def test_project_config_mixed_folder_types():
         git_enabled=False,
         ui_project_enabled=False,
         framework="",
-        folders=["simple", {"name": "dict_folder"}, folder_spec]
+        folders=["simple", {"name": "dict_folder"}, folder_spec],
     )
     assert len(config.folders) == 3
     assert isinstance(config.folders[0], str)
@@ -170,10 +174,11 @@ def test_project_config_mixed_folder_types():
 
 # BuildResult Tests
 
+
 def test_build_result_success():
     """Test BuildResult success"""
     result = BuildResult(success=True, message="Project created successfully")
-    assert result.success == True
+    assert result.success
     assert result.message
     assert result.error is None
 
@@ -181,12 +186,8 @@ def test_build_result_success():
 def test_build_result_failure_with_exception():
     """Test BuildResult failure with exception"""
     test_exception = ValueError("Test error")
-    result = BuildResult(
-        success=False,
-        message="Build failed",
-        error=test_exception
-    )
-    assert result.success == False
+    result = BuildResult(success=False, message="Build failed", error=test_exception)
+    assert not result.success
     assert result.message == "Build failed"
     assert isinstance(result.error, ValueError)
 
@@ -194,11 +195,12 @@ def test_build_result_failure_with_exception():
 def test_build_result_failure_without_exception():
     """Test BuildResult failure without exception"""
     result = BuildResult(success=False, message="Validation failed")
-    assert result.success == False
+    assert not result.success
     assert result.error is None
 
 
 # BuildSummaryConfig Tests
+
 
 def test_build_summary_config_creation():
     """Test BuildSummaryConfig basic creation"""

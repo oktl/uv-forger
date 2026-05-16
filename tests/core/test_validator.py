@@ -16,21 +16,24 @@ from uv_forger.core.validator import (
 )
 
 
-@pytest.mark.parametrize("name,expected_valid,description", [
-    ("my_project", True, "Valid name with underscore"),
-    ("my-project", True, "Valid name with hyphen"),
-    ("MyProject", True, "Valid name with capitals"),
-    ("project123", True, "Valid name with numbers"),
-    ("_private", True, "Valid name starting with underscore"),
-    ("", False, "Empty name"),
-    ("123project", False, "Starts with number"),
-    ("-project", False, "Starts with hyphen"),
-    ("my project", False, "Contains space"),
-    ("my@project", False, "Contains special char"),
-    ("class", False, "Python keyword"),
-    ("for", False, "Python keyword"),
-    ("a" * (_MAX_NAME_LENGTH + 1), False, "Exceeds max length"),
-])
+@pytest.mark.parametrize(
+    "name,expected_valid,description",
+    [
+        ("my_project", True, "Valid name with underscore"),
+        ("my-project", True, "Valid name with hyphen"),
+        ("MyProject", True, "Valid name with capitals"),
+        ("project123", True, "Valid name with numbers"),
+        ("_private", True, "Valid name starting with underscore"),
+        ("", False, "Empty name"),
+        ("123project", False, "Starts with number"),
+        ("-project", False, "Starts with hyphen"),
+        ("my project", False, "Contains space"),
+        ("my@project", False, "Contains special char"),
+        ("class", False, "Python keyword"),
+        ("for", False, "Python keyword"),
+        ("a" * (_MAX_NAME_LENGTH + 1), False, "Exceeds max length"),
+    ],
+)
 def test_validate_project_name(name, expected_valid, description):
     """Test project name validation"""
     is_valid, error_msg = validate_project_name(name)
@@ -44,17 +47,20 @@ def test_validate_project_name_at_max_length():
     assert is_valid
 
 
-@pytest.mark.parametrize("name,expected_valid,description", [
-    ("my_folder", True, "Valid folder with underscore"),
-    ("my-folder", True, "Valid folder with hyphen"),
-    ("MyFolder", True, "Valid folder with capitals"),
-    ("folder123", True, "Valid folder with numbers"),
-    ("123folder", True, "Valid folder starting with number"),
-    ("", False, "Empty name"),
-    ("my folder", False, "Contains space"),
-    ("my@folder", False, "Contains special char"),
-    ("a" * (_MAX_NAME_LENGTH + 1), False, "Exceeds max length"),
-])
+@pytest.mark.parametrize(
+    "name,expected_valid,description",
+    [
+        ("my_folder", True, "Valid folder with underscore"),
+        ("my-folder", True, "Valid folder with hyphen"),
+        ("MyFolder", True, "Valid folder with capitals"),
+        ("folder123", True, "Valid folder with numbers"),
+        ("123folder", True, "Valid folder starting with number"),
+        ("", False, "Empty name"),
+        ("my folder", False, "Contains space"),
+        ("my@folder", False, "Contains special char"),
+        ("a" * (_MAX_NAME_LENGTH + 1), False, "Exceeds max length"),
+    ],
+)
 def test_validate_folder_name(name, expected_valid, description):
     """Test folder name validation"""
     is_valid, error_msg = validate_folder_name(name)
@@ -110,7 +116,10 @@ def test_validate_path_unwritable_parent():
             test_path = readonly_dir / "new_project"
             is_valid, error_msg = validate_path(test_path)
             assert not is_valid, "Path under read-only dir should be rejected"
-            assert "not writable" in error_msg.lower() or "permission denied" in error_msg.lower()
+            assert (
+                "not writable" in error_msg.lower()
+                or "permission denied" in error_msg.lower()
+            )
         finally:
             os.chmod(readonly_dir, 0o755)
 

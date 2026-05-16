@@ -265,7 +265,9 @@ async def test_on_presets_click_with_presets(handler_setup):
     handlers, page, controls, state = handler_setup
     preset = _make_preset()
 
-    with patch("uv_forger.handlers.feature_handlers.load_presets", return_value=[preset]):
+    with patch(
+        "uv_forger.handlers.feature_handlers.load_presets", return_value=[preset]
+    ):
         await handlers.on_presets_click(None)
 
     assert len(page.overlay) == 1

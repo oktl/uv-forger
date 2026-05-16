@@ -5,7 +5,10 @@ from pathlib import Path
 
 import pytest
 
-from uv_forger.core.boilerplate_resolver import BoilerplateResolver, normalize_framework_name
+from uv_forger.core.boilerplate_resolver import (
+    BoilerplateResolver,
+    normalize_framework_name,
+)
 
 
 class TestNormalizeFrameworkName:
@@ -207,9 +210,7 @@ class TestBoilerplateResolverResolve:
             bp = Path(tmpdir) / "empty_bp"
             bp.mkdir()
             (bp / "common").mkdir()
-            resolver = BoilerplateResolver(
-                "demo", framework="flet", boilerplate_dir=bp
-            )
+            resolver = BoilerplateResolver("demo", framework="flet", boilerplate_dir=bp)
             # ui_frameworks/flet doesn't exist — should not error
             assert resolver.resolve("anything.py") is None
 

@@ -1,12 +1,10 @@
 """Tests for app.core.history_manager."""
 
 import json
-from unittest.mock import patch
 
 import pytest
 
 from uv_forger.core.history_manager import (
-    HISTORY_FILE,
     MAX_HISTORY_ENTRIES,
     ProjectHistoryEntry,
     add_to_history,

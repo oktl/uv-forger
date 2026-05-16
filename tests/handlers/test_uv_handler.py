@@ -20,12 +20,7 @@ from uv_forger.handlers.uv_handler import (
 def check_uv_available():
     """Check if uv is available in the system"""
     try:
-        subprocess.run(
-            ["uv", "--version"],
-            capture_output=True,
-            text=True,
-            check=True
-        )
+        subprocess.run(["uv", "--version"], capture_output=True, text=True, check=True)
         return True
     except (subprocess.CalledProcessError, FileNotFoundError):
         return False
@@ -46,19 +41,20 @@ class TestGetUvPath:
 
     def test_raises_error_when_not_found(self):
         """Test FileNotFoundError when uv not found"""
-        with patch('shutil.which', return_value=None):
-            with patch('pathlib.Path.exists', return_value=False):
-                with pytest.raises(FileNotFoundError) as exc_info:
-                    get_uv_path()
-                assert "Could not find 'uv' executable" in str(exc_info.value)
+        with patch("shutil.which", return_value=None), patch("pathlib.Path.exists", return_value=False):
+            with pytest.raises(FileNotFoundError) as exc_info:
+                get_uv_path()
+            assert "Could not find 'uv' executable" in str(exc_info.value)
 
     def test_windows_path_handling(self):
         """Test platform-specific path handling"""
-        with patch('shutil.which', return_value=None):
-            with patch('platform.system', return_value='Windows'):
-                with patch('pathlib.Path.exists', return_value=False):
-                    with pytest.raises(FileNotFoundError):
-                        get_uv_path()
+        with (
+            patch("shutil.which", return_value=None),
+            patch("platform.system", return_value="Windows"),
+            patch("pathlib.Path.exists", return_value=False),
+            pytest.raises(FileNotFoundError),
+        ):
+            get_uv_path()
 
 
 class TestConfigurePyproject:
@@ -71,7 +67,7 @@ class TestConfigurePyproject:
             pyproject_file = project_path / "pyproject.toml"
 
             # Create initial pyproject.toml
-            initial_content = "[project]\nname = \"test-project\"\n"
+            initial_content = '[project]\nname = "test-project"\n'
             pyproject_file.write_text(initial_content)
 
             # Configure it
@@ -98,7 +94,7 @@ class TestConfigurePyproject:
 
             content = pyproject_file.read_text()
             # Check that it starts with a newline (for separation)
-            assert content.startswith('\n')
+            assert content.startswith("\n")
 
     def test_different_project_names(self):
         """Test different project names"""
@@ -118,42 +114,45 @@ class TestUvCommandsWithMocks:
 
     def test_run_uv_init_command_structure(self):
         """Test run_uv_init command structure"""
-        with patch('uv_forger.handlers.uv_handler.get_uv_path', return_value='/usr/bin/uv'):
-            with patch('subprocess.run') as mock_run:
-                mock_run.return_value = MagicMock(returncode=0)
+        with patch(
+            "uv_forger.handlers.uv_handler.get_uv_path", return_value="/usr/bin/uv"
+        ), patch("subprocess.run") as mock_run:
+            mock_run.return_value = MagicMock(returncode=0)
 
-                with tempfile.TemporaryDirectory() as tmpdir:
-                    project_path = Path(tmpdir)
-                    run_uv_init(project_path, "3.14")
+            with tempfile.TemporaryDirectory() as tmpdir:
+                project_path = Path(tmpdir)
+                run_uv_init(project_path, "3.14")
 
-                    # Verify subprocess.run was called with correct arguments
-                    call_args = mock_run.call_args
-                    cmd = call_args[0][0]
+                # Verify subprocess.run was called with correct arguments
+                call_args = mock_run.call_args
+                cmd = call_args[0][0]
 
-                    assert cmd == ['/usr/bin/uv', 'init', '--python', '3.14', '.']
-                    assert call_args[1]['cwd'] == project_path
-                    assert call_args[1]['check'] == True
+                assert cmd == ["/usr/bin/uv", "init", "--python", "3.14", "."]
+                assert call_args[1]["cwd"] == project_path
+                assert call_args[1]["check"]
 
     def test_setup_virtual_env_command_structure(self):
         """Test setup_virtual_env command structure"""
-        with patch('uv_forger.handlers.uv_handler.get_uv_path', return_value='/usr/bin/uv'):
-            with patch('subprocess.run') as mock_run:
-                mock_run.return_value = MagicMock(returncode=0)
+        with patch(
+            "uv_forger.handlers.uv_handler.get_uv_path", return_value="/usr/bin/uv"
+        ), patch("subprocess.run") as mock_run:
+            mock_run.return_value = MagicMock(returncode=0)
 
-                with tempfile.TemporaryDirectory() as tmpdir:
-                    project_path = Path(tmpdir)
-                    setup_virtual_env(project_path, "3.14")
+            with tempfile.TemporaryDirectory() as tmpdir:
+                project_path = Path(tmpdir)
+                setup_virtual_env(project_path, "3.14")
 
-                    # Should be called twice: venv and sync
-                    assert mock_run.call_count == 2
+                # Should be called twice: venv and sync
+                assert mock_run.call_count == 2
 
-                    # Check first call (venv)
-                    first_call = mock_run.call_args_list[0][0][0]
-                    # Check second call (sync)
-                    second_call = mock_run.call_args_list[1][0][0]
+                # Check first call (venv)
+                first_call = mock_run.call_args_list[0][0][0]
+                # Check second call (sync)
+                second_call = mock_run.call_args_list[1][0][0]
 
-                    assert first_call == ['/usr/bin/uv', 'venv', '--python', '3.14']
-                    assert second_call == ['/usr/bin/uv', 'sync']
+                assert first_call == ["/usr/bin/uv", "venv", "--python", "3.14"]
+                assert second_call == ["/usr/bin/uv", "sync"]
+
 
 class TestResolveEntryPoint:
     """Tests for _resolve_entry_point helper"""
@@ -168,8 +167,15 @@ class TestResolveEntryPoint:
 
     def test_gui_frameworks_use_run(self):
         """All GUI frameworks use app.main:run"""
-        for fw in ["PyQt6", "PySide6", "tkinter (built-in)", "customtkinter",
-                    "kivy", "pygame", "nicegui"]:
+        for fw in [
+            "PyQt6",
+            "PySide6",
+            "tkinter (built-in)",
+            "customtkinter",
+            "kivy",
+            "pygame",
+            "nicegui",
+        ]:
             assert _resolve_entry_point(framework=fw) == "app.main:run", f"{fw} failed"
 
     def test_streamlit_no_entry_point(self):
@@ -230,7 +236,7 @@ class TestConfigurePyprojectWithContext:
             configure_pyproject(project_path, "myapp", framework="flet")
 
             content = (project_path / "pyproject.toml").read_text()
-            assert '[project.scripts]' in content
+            assert "[project.scripts]" in content
             assert 'myapp = "app.main:run"' in content
 
     def test_django_project_has_no_scripts(self):
@@ -242,8 +248,8 @@ class TestConfigurePyprojectWithContext:
             configure_pyproject(project_path, "myapp", project_type="django")
 
             content = (project_path / "pyproject.toml").read_text()
-            assert '[tool.hatch.build.targets.wheel]' in content
-            assert '[project.scripts]' not in content
+            assert "[tool.hatch.build.targets.wheel]" in content
+            assert "[project.scripts]" not in content
 
     def test_streamlit_project_has_no_scripts(self):
         """Streamlit project should NOT have [project.scripts]"""
@@ -254,8 +260,8 @@ class TestConfigurePyprojectWithContext:
             configure_pyproject(project_path, "myapp", framework="streamlit")
 
             content = (project_path / "pyproject.toml").read_text()
-            assert '[tool.hatch.build.targets.wheel]' in content
-            assert '[project.scripts]' not in content
+            assert "[tool.hatch.build.targets.wheel]" in content
+            assert "[project.scripts]" not in content
 
     def test_cli_click_entry_point(self):
         """Click CLI project should have app.main:cli"""
@@ -288,7 +294,7 @@ class TestConfigurePyprojectWithContext:
             configure_pyproject(project_path, "myapp", project_type="django")
 
             content = (project_path / "pyproject.toml").read_text()
-            assert '[tool.hatch.build.targets.wheel]' in content
+            assert "[tool.hatch.build.targets.wheel]" in content
             assert 'packages = ["app"]' in content
 
     def test_default_bare_project(self):
@@ -309,8 +315,10 @@ class TestConfigurePyprojectWithContext:
             (project_path / "pyproject.toml").write_text("")
 
             configure_pyproject(
-                project_path, "myapp",
-                framework="flet", project_type="cli_click",
+                project_path,
+                "myapp",
+                framework="flet",
+                project_type="cli_click",
             )
 
             content = (project_path / "pyproject.toml").read_text()
@@ -324,13 +332,13 @@ class TestConfigurePyprojectMetadata:
     def _uv_pyproject():
         """Return a minimal UV-generated pyproject.toml."""
         return (
-            '[project]\n'
+            "[project]\n"
             'name = "myapp"\n'
             'version = "0.1.0"\n'
             'description = ""\n'
             'readme = "README.md"\n'
             'requires-python = ">=3.14"\n'
-            'dependencies = []\n'
+            "dependencies = []\n"
         )
 
     def test_author_name_only(self):
@@ -339,9 +347,7 @@ class TestConfigurePyprojectMetadata:
             project_path = Path(tmpdir)
             (project_path / "pyproject.toml").write_text(self._uv_pyproject())
 
-            configure_pyproject(
-                project_path, "myapp", author_name="Tim"
-            )
+            configure_pyproject(project_path, "myapp", author_name="Tim")
 
             content = (project_path / "pyproject.toml").read_text()
             assert 'authors = [{name = "Tim"}]' in content
@@ -353,8 +359,10 @@ class TestConfigurePyprojectMetadata:
             (project_path / "pyproject.toml").write_text(self._uv_pyproject())
 
             configure_pyproject(
-                project_path, "myapp",
-                author_name="Tim", author_email="tim@example.com",
+                project_path,
+                "myapp",
+                author_name="Tim",
+                author_email="tim@example.com",
             )
 
             content = (project_path / "pyproject.toml").read_text()
@@ -367,9 +375,7 @@ class TestConfigurePyprojectMetadata:
             project_path = Path(tmpdir)
             (project_path / "pyproject.toml").write_text(self._uv_pyproject())
 
-            configure_pyproject(
-                project_path, "myapp", description="A cool project"
-            )
+            configure_pyproject(project_path, "myapp", description="A cool project")
 
             content = (project_path / "pyproject.toml").read_text()
             assert 'description = "A cool project"' in content
@@ -381,9 +387,7 @@ class TestConfigurePyprojectMetadata:
             project_path = Path(tmpdir)
             (project_path / "pyproject.toml").write_text(self._uv_pyproject())
 
-            configure_pyproject(
-                project_path, "myapp", license_type="MIT"
-            )
+            configure_pyproject(project_path, "myapp", license_type="MIT")
 
             content = (project_path / "pyproject.toml").read_text()
             assert 'license = "MIT"' in content
@@ -395,7 +399,8 @@ class TestConfigurePyprojectMetadata:
             (project_path / "pyproject.toml").write_text(self._uv_pyproject())
 
             configure_pyproject(
-                project_path, "myapp",
+                project_path,
+                "myapp",
                 author_name="Tim",
                 author_email="tim@example.com",
                 description="My project",
@@ -408,7 +413,7 @@ class TestConfigurePyprojectMetadata:
             assert 'email = "tim@example.com"' in content
             assert 'license = "Apache-2.0"' in content
             # Hatch config still appended
-            assert '[tool.hatch.build.targets.wheel]' in content
+            assert "[tool.hatch.build.targets.wheel]" in content
 
     def test_no_metadata_leaves_file_unchanged(self):
         """No metadata fields leaves the [project] section unchanged."""
@@ -423,7 +428,7 @@ class TestConfigurePyprojectMetadata:
             # Original content preserved at the start
             assert 'description = ""' in content
             assert "authors" not in content
-            assert 'license = ' not in content
+            assert "license = " not in content
 
 
 class TestConfigurePyprojectImported:
@@ -441,9 +446,7 @@ class TestConfigurePyprojectImported:
             project_path = Path(tmpdir)
             (project_path / "pyproject.toml").write_text(self._uv_pyproject())
 
-            configure_pyproject(
-                project_path, "myapp", imported_structure=True
-            )
+            configure_pyproject(project_path, "myapp", imported_structure=True)
 
             content = (project_path / "pyproject.toml").read_text()
             assert "[tool.hatch.build.targets.wheel]" not in content

@@ -6,7 +6,6 @@ import pytest
 
 from uv_forger.core.preset_manager import (
     BUILTIN_PRESETS,
-    PRESETS_FILE,
     ProjectPreset,
     add_preset,
     delete_preset,
@@ -14,7 +13,6 @@ from uv_forger.core.preset_manager import (
     make_preset,
     save_presets,
 )
-
 
 _N_BUILTIN = len(BUILTIN_PRESETS)
 

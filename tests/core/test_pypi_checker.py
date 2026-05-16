@@ -110,9 +110,7 @@ class TestCheckPypiAvailability:
 
         async def mock_get(self, url, **kwargs):
             captured_urls.append(str(url))
-            return httpx.Response(
-                404, request=httpx.Request("GET", str(url))
-            )
+            return httpx.Response(404, request=httpx.Request("GET", str(url)))
 
         monkeypatch.setattr(httpx.AsyncClient, "get", mock_get)
         await check_pypi_availability("My_Cool_App")

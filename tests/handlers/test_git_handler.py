@@ -19,12 +19,7 @@ from uv_forger.handlers.git_handler import (
 def check_git_available():
     """Check if git is available for testing"""
     try:
-        subprocess.run(
-            ["git", "--version"],
-            capture_output=True,
-            text=True,
-            check=True
-        )
+        subprocess.run(["git", "--version"], capture_output=True, text=True, check=True)
         return True
     except (subprocess.CalledProcessError, FileNotFoundError):
         pytest.skip("Git is not available - tests require git to be installed")
@@ -60,10 +55,7 @@ class TestHandleGitInit:
 
             # Initialize git first
             subprocess.run(
-                ["git", "init"],
-                cwd=project_path,
-                capture_output=True,
-                check=True
+                ["git", "init"], cwd=project_path, capture_output=True, check=True
             )
 
             # Create a test file in .git to verify it's not overwritten
@@ -84,10 +76,7 @@ class TestHandleGitInit:
 
             # Initialize git first
             subprocess.run(
-                ["git", "init"],
-                cwd=project_path,
-                capture_output=True,
-                check=True
+                ["git", "init"], cwd=project_path, capture_output=True, check=True
             )
 
             # Verify .git exists
@@ -218,9 +207,7 @@ class TestFinalizeGitSetup:
             )
             assert log.stdout.strip() == ""
 
-    def test_raises_clear_error_when_identity_not_configured(
-        self, check_git_available
-    ):
+    def test_raises_clear_error_when_identity_not_configured(self, check_git_available):
         """Test that a RuntimeError with helpful message is raised when git
         user.email is not set, instead of an opaque CalledProcessError"""
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -302,9 +289,7 @@ class TestHandleGitInitRemoteModes:
         with tempfile.TemporaryDirectory() as tmpdir:
             project_path = Path(tmpdir) / "myproject"
             project_path.mkdir()
-            handle_git_init(
-                project_path, use_git=True, git_remote_mode="github"
-            )
+            handle_git_init(project_path, use_git=True, git_remote_mode="github")
 
             assert (project_path / ".git").exists()
             # No remote should be configured
@@ -321,9 +306,7 @@ class TestHandleGitInitRemoteModes:
         with tempfile.TemporaryDirectory() as tmpdir:
             project_path = Path(tmpdir) / "myproject"
             project_path.mkdir()
-            handle_git_init(
-                project_path, use_git=True, git_remote_mode="none"
-            )
+            handle_git_init(project_path, use_git=True, git_remote_mode="none")
 
             assert (project_path / ".git").exists()
             result = subprocess.run(
@@ -386,9 +369,7 @@ class TestFinalizeGitSetupRemoteModes:
             self._setup_local_repo(project_path)
             (project_path / "README.md").write_text("# Hello")
 
-            finalize_git_setup(
-                project_path, use_git=True, git_remote_mode="none"
-            )
+            finalize_git_setup(project_path, use_git=True, git_remote_mode="none")
 
             log = subprocess.run(
                 ["git", "log", "--oneline"],
@@ -416,7 +397,10 @@ class TestFinalizeGitSetupRemoteModes:
                             args=cmd, returncode=0, stdout="repo created"
                         )
                     return original_run(
-                        cmd, cwd=cwd, capture_output=True, text=True,
+                        cmd,
+                        cwd=cwd,
+                        capture_output=True,
+                        text=True,
                         check=kwargs.get("check", True),
                     )
 
@@ -432,8 +416,7 @@ class TestFinalizeGitSetupRemoteModes:
 
                 # Verify gh repo create was called
                 gh_calls = [
-                    call for call in mock_run.call_args_list
-                    if call[0][0][0] == "gh"
+                    call for call in mock_run.call_args_list if call[0][0][0] == "gh"
                 ]
                 assert len(gh_calls) == 1
                 cmd = gh_calls[0][0][0]
@@ -460,7 +443,10 @@ class TestFinalizeGitSetupRemoteModes:
                             args=cmd, returncode=0, stdout="repo created"
                         )
                     return original_run(
-                        cmd, cwd=cwd, capture_output=True, text=True,
+                        cmd,
+                        cwd=cwd,
+                        capture_output=True,
+                        text=True,
                         check=kwargs.get("check", True),
                     )
 
@@ -474,8 +460,7 @@ class TestFinalizeGitSetupRemoteModes:
                 )
 
                 gh_calls = [
-                    call for call in mock_run.call_args_list
-                    if call[0][0][0] == "gh"
+                    call for call in mock_run.call_args_list if call[0][0][0] == "gh"
                 ]
                 assert len(gh_calls) == 1
                 cmd = gh_calls[0][0][0]
@@ -498,7 +483,10 @@ class TestFinalizeGitSetupRemoteModes:
                             args=cmd, returncode=0, stdout="repo created"
                         )
                     return original_run(
-                        cmd, cwd=cwd, capture_output=True, text=True,
+                        cmd,
+                        cwd=cwd,
+                        capture_output=True,
+                        text=True,
                         check=kwargs.get("check", True),
                     )
 
@@ -513,8 +501,7 @@ class TestFinalizeGitSetupRemoteModes:
                 )
 
                 gh_calls = [
-                    call for call in mock_run.call_args_list
-                    if call[0][0][0] == "gh"
+                    call for call in mock_run.call_args_list if call[0][0][0] == "gh"
                 ]
                 assert len(gh_calls) == 1
                 cmd = gh_calls[0][0][0]

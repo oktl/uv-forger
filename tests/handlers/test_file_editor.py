@@ -185,16 +185,12 @@ class TestGetCanonicalFilePath:
 
     def test_root_files_path_second_item(self):
         root_files = ["README.md", "LICENSE", "CHANGELOG.md"]
-        result = get_canonical_file_path(
-            [], ["root_files", 2], root_files=root_files
-        )
+        result = get_canonical_file_path([], ["root_files", 2], root_files=root_files)
         assert result == "CHANGELOG.md"
 
     def test_root_files_path_out_of_range(self):
         root_files = ["README.md"]
-        result = get_canonical_file_path(
-            [], ["root_files", 5], root_files=root_files
-        )
+        result = get_canonical_file_path([], ["root_files", 5], root_files=root_files)
         assert result is None
 
     def test_root_files_path_without_root_files_param(self):
@@ -202,9 +198,7 @@ class TestGetCanonicalFilePath:
         assert result is None
 
     def test_root_files_path_with_empty_list(self):
-        result = get_canonical_file_path(
-            [], ["root_files", 0], root_files=[]
-        )
+        result = get_canonical_file_path([], ["root_files", 0], root_files=[])
         assert result is None
 
 
@@ -235,9 +229,7 @@ class TestFileOverridesInBuild:
         from uv_forger.handlers.filesystem_handler import create_folders
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            folders = [
-                {"name": "core", "subfolders": [], "files": ["main.py"]}
-            ]
+            folders = [{"name": "core", "subfolders": [], "files": ["main.py"]}]
             overrides = {"core/main.py": "# custom content here"}
             create_folders(
                 Path(tmpdir),
@@ -251,9 +243,7 @@ class TestFileOverridesInBuild:
         from uv_forger.handlers.filesystem_handler import create_folders
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            folders = [
-                {"name": "core", "subfolders": [], "files": ["state.py"]}
-            ]
+            folders = [{"name": "core", "subfolders": [], "files": ["state.py"]}]
             # No overrides — file should still be created (empty touch)
             create_folders(Path(tmpdir), folders, file_overrides={})
             assert (Path(tmpdir) / "core" / "state.py").exists()
@@ -340,7 +330,11 @@ class TestContextMenuAndIndicator:
 
         event = Mock()
         event.control = Mock()
-        event.control.data = {"path": [0, "files", 0], "type": "file", "name": "main.py"}
+        event.control.data = {
+            "path": [0, "files", 0],
+            "type": "file",
+            "name": "main.py",
+        }
         h._on_item_click(event)
         assert controls.edit_file_button.disabled is False
 
@@ -418,7 +412,8 @@ class TestCreateFileEditorView:
         from uv_forger.ui.dialogs import create_file_editor_view
 
         user_path = str(
-            Path.home() / "Library/Application Support/UV Forger/boilerplate/flet/main.py"
+            Path.home()
+            / "Library/Application Support/UV Forger/boilerplate/flet/main.py"
         )
         view = create_file_editor_view(
             filename="main.py",
@@ -435,7 +430,8 @@ class TestCreateFileEditorView:
         from uv_forger.ui.dialogs import create_file_editor_view
 
         user_path = str(
-            Path.home() / "Library/Application Support/UV Forger/boilerplate/flet/main.py"
+            Path.home()
+            / "Library/Application Support/UV Forger/boilerplate/flet/main.py"
         )
         view = create_file_editor_view(
             filename="main.py",
