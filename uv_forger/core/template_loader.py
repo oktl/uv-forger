@@ -66,22 +66,19 @@ class TemplateLoader:
         except _template_errors:
             return None
 
-    def _update_config_state(
-        self,
-        template_path: Path,
-        loaded_template: str | None,
-        settings: dict[str, Any],
-    ) -> None:
-        """Update config state after loading a template.
-
-        Args:
-            template_path: Path to the template file that was loaded.
-            loaded_template: Template identifier that was requested/loaded.
-            settings: Configuration dictionary with 'folders' key.
-        """
-        self.config_source = template_path
-        self.loaded_template = loaded_template
-        self.settings = settings
+    def _try_user_template(
+        self, subdir: str, filename: str, template_id: str
+    ) -> dict[str, Any] | None:
+        """Try loading a template from the user overlay directory."""
+        if not self.user_templates_dir:
+            return None
+        path = self.user_templates_dir / subdir / f"{filename}.json"
+        settings = self._load_template(path)
+        if settings:
+            self.config_source = path
+            self.loaded_template = template_id
+            self.settings = settings
+        return settings
 
     def load_config(self, template: str | None = None) -> dict[str, Any]:
         """Load folder configuration from template files.
@@ -107,44 +104,42 @@ class TemplateLoader:
             # Check if it's a project type path (e.g., "project_types/django")
             if "/" in template:
                 filename = template.split("/")[-1]
-                # Try user dir first
-                if self.user_templates_dir:
-                    user_path = (
-                        self.user_templates_dir / "project_types" / f"{filename}.json"
-                    )
-                    user_settings = self._load_template(user_path)
-                    if user_settings:
-                        self._update_config_state(user_path, template, user_settings)
-                        return user_settings
+                user_settings = self._try_user_template(
+                    "project_types", filename, template
+                )
+                if user_settings:
+                    return user_settings
                 template_path = PROJECT_TYPE_TEMPLATES_DIR / f"{filename}.json"
             else:
                 # UI framework - look in ui_frameworks directory
                 normalized = normalize_framework_name(template)
-                # Try user dir first
-                if self.user_templates_dir:
-                    user_path = (
-                        self.user_templates_dir / "ui_frameworks" / f"{normalized}.json"
-                    )
-                    user_settings = self._load_template(user_path)
-                    if user_settings:
-                        self._update_config_state(user_path, template, user_settings)
-                        return user_settings
+                user_settings = self._try_user_template(
+                    "ui_frameworks", normalized, template
+                )
+                if user_settings:
+                    return user_settings
                 template_path = UI_TEMPLATES_DIR / f"{normalized}.json"
 
             settings = self._load_template(template_path)
             if settings:
-                self._update_config_state(template_path, template, settings)
+                self.config_source = template_path
+                self.loaded_template = template
+                self.settings = settings
                 return settings
 
         # Fall back to default template
         default_template = TEMPLATES_DIR / "default.json"
         settings = self._load_template(default_template)
         if settings:
-            self._update_config_state(default_template, template, settings)
+            self.config_source = default_template
+            self.loaded_template = template
+            self.settings = settings
             return settings
 
         # Final fallback to hard-coded defaults
-        self._update_config_state(default_template, template, defaults)
+        self.config_source = default_template
+        self.loaded_template = template
+        self.settings = defaults
         return defaults
 
     def get_config_display_name(self) -> str:

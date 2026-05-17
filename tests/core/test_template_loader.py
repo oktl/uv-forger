@@ -65,33 +65,6 @@ class TestLoadTemplate:
             temp_path.unlink()
 
 
-class TestUpdateConfigState:
-    """Tests for config state updates"""
-
-    def test_update_config_state_sets_attributes(self):
-        """Test _update_config_state updates all config attributes"""
-        manager = TemplateLoader()
-        test_path = Path("/test/path.json")
-        test_template = "flet"
-        test_settings = {"folders": ["src", "tests"]}
-
-        manager._update_config_state(test_path, test_template, test_settings)
-
-        assert manager.config_source == test_path
-        assert manager.loaded_template == test_template
-        assert manager.settings == test_settings
-
-    def test_update_config_state_with_none_template(self):
-        """Test _update_config_state with None loaded_template"""
-        manager = TemplateLoader()
-        test_path = Path("/test/default.json")
-        test_settings = {"folders": []}
-
-        manager._update_config_state(test_path, None, test_settings)
-
-        assert manager.loaded_template is None
-
-
 class TestLoadConfig:
     """Tests for config loading"""
 

@@ -123,20 +123,6 @@ class BoilerplateResolver:
         return None
 
     def _substitute(self, content: str) -> str:
-        """Replace placeholders in boilerplate content.
-
-        Args:
-            content: Raw boilerplate template content.
-
-        Returns:
-            Content with placeholders replaced by actual values.
-            Currently supports: {{project_name}}
-        """
-        replacements = {
-            "{{project_name}}": normalize_project_name(self.project_name),
-        }
-
-        for placeholder, value in replacements.items():
-            content = content.replace(placeholder, value)
-
-        return content
+        return content.replace(
+            "{{project_name}}", normalize_project_name(self.project_name)
+        )

@@ -19,6 +19,8 @@ _BOX_CHARS = re.compile(r"[│├└─╰╭┌┘┐┤┬┴┼╮╯]")
 _CONNECTOR_RE = re.compile(r"^((?:[│ ] {3})*)[├└]── ")
 _CONTINUATION_RE = re.compile(r"^[│ ]*$")
 
+_MAX_INDENT_UNIT = 8  # Cap on auto-detected indent size to handle odd formatting
+
 
 @dataclass
 class TreeParseResult:
@@ -44,27 +46,7 @@ def parse_tree_text(text: str) -> list[dict[str, Any]]:
         {"name": str, "create_init": bool, "root_level": bool,
          "subfolders": list, "files": list}
     """
-    if not text or not text.strip():
-        return []
-
-    lines = text.splitlines()
-    # Strip leading/trailing blank lines
-    while lines and not lines[0].strip():
-        lines.pop(0)
-    while lines and not lines[-1].strip():
-        lines.pop()
-
-    if not lines:
-        return []
-
-    fmt = _detect_format(lines)
-    entries = _parse_lines(lines, fmt)
-
-    if not entries:
-        return []
-
-    entries = _maybe_strip_root(entries, lines, fmt)
-    return _build_tree(entries).folders
+    return _parse_tree_lines(text).folders
 
 
 def parse_tree_text_full(text: str) -> TreeParseResult:
@@ -76,6 +58,11 @@ def parse_tree_text_full(text: str) -> TreeParseResult:
     Returns:
         TreeParseResult with folders and root_files.
     """
+    return _parse_tree_lines(text)
+
+
+def _parse_tree_lines(text: str) -> TreeParseResult:
+    """Shared core: strip blanks, detect format, parse, strip root, build tree."""
     if not text or not text.strip():
         return TreeParseResult()
 
@@ -247,7 +234,7 @@ def _detect_indent_size(lines: list[str]) -> int:
             if line[0] == "\t":
                 return 1  # Tabs: 1 char = 1 level
             # Use the first indented line's indentation as the unit
-            return min(indent, 8)  # Cap at 8 to handle weird formatting
+            return min(indent, _MAX_INDENT_UNIT)
     return 4  # Default
 
 

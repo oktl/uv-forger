@@ -52,6 +52,26 @@ class ProjectHistoryEntry:
     root_files: list[str] = field(default_factory=list)
     built_at: str = ""
 
+    def __post_init__(self) -> None:
+        if not self.built_at:
+            self.built_at = datetime.datetime.now(datetime.UTC).isoformat()
+
+
+def _deserialize_list[T](data: Any, cls: type[T]) -> list[T]:
+    """Deserialize a JSON list into dataclass instances, skipping malformed items."""
+    if not isinstance(data, list):
+        return []
+    valid_keys = {f.name for f in fields(cls)}  # type: ignore[arg-type]
+    result: list[T] = []
+    for item in data:
+        if not isinstance(item, dict):
+            continue
+        try:
+            result.append(cls(**{k: v for k, v in item.items() if k in valid_keys}))  # type: ignore[call-arg]
+        except TypeError:
+            continue
+    return result
+
 
 def load_history() -> list[ProjectHistoryEntry]:
     """Load project history from disk.
@@ -68,20 +88,7 @@ def load_history() -> list[ProjectHistoryEntry]:
     except (json.JSONDecodeError, OSError):
         return []
 
-    if not isinstance(data, list):
-        return []
-
-    valid_keys = {f.name for f in fields(ProjectHistoryEntry)}
-    entries = []
-    for item in data:
-        if not isinstance(item, dict):
-            continue
-        filtered = {k: v for k, v in item.items() if k in valid_keys}
-        try:
-            entries.append(ProjectHistoryEntry(**filtered))
-        except TypeError:
-            continue
-    return entries
+    return _deserialize_list(data, ProjectHistoryEntry)
 
 
 def save_history(entries: list[ProjectHistoryEntry]) -> None:
@@ -149,27 +156,7 @@ def make_history_entry(
     imported_structure: bool = False,
     root_files: list[str] | None = None,
 ) -> ProjectHistoryEntry:
-    """Create a ProjectHistoryEntry with the current timestamp.
-
-    Args:
-        project_name: Name of the project.
-        project_path: Base directory where the project was created.
-        python_version: Python version used.
-        git_enabled: Whether git was initialized.
-        include_starter_files: Whether starter files were included.
-        ui_project_enabled: Whether a UI framework was selected.
-        framework: Selected UI framework name, or None.
-        other_project_enabled: Whether an other project type was selected.
-        project_type: Selected project type name, or None.
-        folders: Folder structure at build time.
-        packages: Packages installed at build time.
-        dev_packages: Packages marked as dev dependencies at build time.
-        imported_structure: Whether this used an imported tree structure.
-        root_files: Root-level files from imported tree structure.
-
-    Returns:
-        A new ProjectHistoryEntry with built_at set to now.
-    """
+    """Create a ProjectHistoryEntry with the current timestamp (set via __post_init__)."""
     return ProjectHistoryEntry(
         project_name=project_name,
         project_path=project_path,
@@ -185,5 +172,4 @@ def make_history_entry(
         dev_packages=list(dev_packages) if dev_packages else [],
         imported_structure=imported_structure,
         root_files=list(root_files) if root_files else [],
-        built_at=datetime.datetime.now(datetime.UTC).isoformat(),
     )

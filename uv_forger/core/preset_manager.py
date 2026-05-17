@@ -60,6 +60,10 @@ class ProjectPreset:
     saved_at: str = ""
     builtin: bool = False
 
+    def __post_init__(self) -> None:
+        if not self.saved_at:
+            self.saved_at = datetime.datetime.now(datetime.UTC).isoformat()
+
 
 # ── Built-in starter presets ────────────────────────────────────────────────
 
@@ -268,6 +272,22 @@ BUILTIN_PRESETS: list[ProjectPreset] = [
 ]
 
 
+def _deserialize_list[T](data: Any, cls: type[T]) -> list[T]:
+    """Deserialize a JSON list into dataclass instances, skipping malformed items."""
+    if not isinstance(data, list):
+        return []
+    valid_keys = {f.name for f in fields(cls)}  # type: ignore[arg-type]
+    result: list[T] = []
+    for item in data:
+        if not isinstance(item, dict):
+            continue
+        try:
+            result.append(cls(**{k: v for k, v in item.items() if k in valid_keys}))  # type: ignore[call-arg]
+        except TypeError:
+            continue
+    return result
+
+
 def load_presets() -> list[ProjectPreset]:
     """Load presets from disk.
 
@@ -282,17 +302,7 @@ def load_presets() -> list[ProjectPreset]:
             data = json.loads(PRESETS_FILE.read_text(encoding="utf-8"))
         except (json.JSONDecodeError, OSError):
             data = None
-
-        if isinstance(data, list):
-            valid_keys = {f.name for f in fields(ProjectPreset)}
-            for item in data:
-                if not isinstance(item, dict):
-                    continue
-                filtered = {k: v for k, v in item.items() if k in valid_keys}
-                try:
-                    presets.append(ProjectPreset(**filtered))
-                except TypeError:
-                    continue
+        presets = _deserialize_list(data, ProjectPreset)
 
     # Append built-in presets that aren't shadowed by user presets of the same name
     user_names = {p.name for p in presets}
@@ -370,30 +380,7 @@ def make_preset(
     description: str = "",
     license_type: str = "",
 ) -> ProjectPreset:
-    """Create a ProjectPreset with the current timestamp.
-
-    Args:
-        name: User-given label for this preset.
-        python_version: Python version to use.
-        git_enabled: Whether to initialize git.
-        include_starter_files: Whether to populate files with starter content.
-        ui_project_enabled: Whether a UI framework is selected.
-        framework: Selected UI framework name, or None.
-        other_project_enabled: Whether a project type is selected.
-        project_type: Selected project type name, or None.
-        folders: Folder structure.
-        packages: Packages to install.
-        dev_packages: Packages marked as dev dependencies.
-        imported_structure: Whether this used an imported tree structure.
-        root_files: Root-level files from imported tree structure.
-        author_name: Default author name.
-        author_email: Default author email.
-        description: Project description.
-        license_type: SPDX license identifier.
-
-    Returns:
-        A new ProjectPreset with saved_at set to now.
-    """
+    """Create a ProjectPreset with the current timestamp (set via __post_init__)."""
     return ProjectPreset(
         name=name,
         python_version=python_version,
@@ -412,5 +399,4 @@ def make_preset(
         author_email=author_email,
         description=description,
         license_type=license_type,
-        saved_at=datetime.datetime.now(datetime.UTC).isoformat(),
     )
