@@ -1480,7 +1480,7 @@ def create_build_summary_dialog(
         hint_text="e.g. uv run pre-commit install",
         width=400,
         text_size=13,
-        content_padding=ft.padding.symmetric(horizontal=10, vertical=8),
+        content_padding=ft.Padding.symmetric(horizontal=10, vertical=8),
         disabled=not config.post_build_command_enabled,
     )
 
@@ -2976,8 +2976,8 @@ def create_file_editor_view(
                 alignment=ft.Alignment(0, 0),
                 expand=True,
                 border_radius=8,
-                border=ft.border.all(1, ft.Colors.OUTLINE_VARIANT),
-                margin=ft.margin.only(bottom=12),
+                border=ft.Border.all(1, ft.Colors.OUTLINE_VARIANT),
+                margin=ft.Margin.only(bottom=12),
             ),
         ],
         horizontal_alignment=ft.CrossAxisAlignment.CENTER,
