@@ -6,6 +6,7 @@ import pytest
 
 from uv_forger.core.state import AppState
 from uv_forger.handlers.ui_handler import Handlers
+from uv_forger.ui.folders_panel import FolderPanelCallbacks
 from uv_forger.ui.ui_config import UIConfig
 
 
@@ -72,7 +73,8 @@ class MockControls:
         self.other_projects_checkbox = MockControl(value=False)
         self.save_as_preset_button = MockControl()
         self.app_subfolders_label = MockText()
-        self.subfolders_container = MockContainer()
+        self.folders_panel = Mock()
+        self.folder_callbacks = FolderPanelCallbacks()
         self.packages_label = MockText()
         self.packages_panel = Mock()
         self.add_package_button = MockControl()

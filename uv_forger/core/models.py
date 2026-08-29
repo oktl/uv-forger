@@ -303,3 +303,46 @@ def to_plain(value: Any) -> Any:
     if isinstance(value, list):
         return [to_plain(item) for item in value]
     return value
+
+
+def get_canonical_file_path(
+    folders: list[dict[str, Any]],
+    item_path: list[int | str],
+    root_files: list[str] | None = None,
+) -> str | None:
+    """Walk the folder tree by navigation path to build a canonical file path.
+
+    Args:
+        folders: Normalized folder list from state.
+        item_path: Navigation path (e.g., [0, "files", 1] or [0, "subfolders", 0, "files", 2]).
+        root_files: Optional list of root-level file names for imported structures.
+
+    Returns:
+        Canonical path string like "core/state.py", or None if path is invalid.
+    """
+    # Handle root_files paths (e.g., ["root_files", 0])
+    if item_path and len(item_path) == 2 and item_path[0] == "root_files":
+        idx = item_path[1]
+        if root_files and isinstance(idx, int) and 0 <= idx < len(root_files):
+            return root_files[idx]
+        return None
+
+    parts: list[str] = []
+    current: Any = folders
+    for segment in item_path:
+        if isinstance(segment, int):
+            try:
+                current = current[segment]
+            except (IndexError, KeyError, TypeError):
+                return None
+            # If this is a folder dict, record its name
+            if isinstance(current, dict) and "name" in current:
+                parts.append(current["name"])
+            # If this is a string (a filename), record it
+            elif isinstance(current, str):
+                parts.append(current)
+        elif segment == "subfolders":
+            current = current.get("subfolders", []) if isinstance(current, dict) else []
+        elif segment == "files":
+            current = current.get("files", []) if isinstance(current, dict) else []
+    return "/".join(parts) if parts else None

@@ -45,8 +45,9 @@ tests/handlers/* + tests/ui/test_dialogs.py mostly rewritten — ~150 of 776 tes
     `@ft.component`; `_update_package_display()` no longer builds controls. Landed with
     **no** components mode and no update scheduler — see "Step 3" below for how, and for
     the subscription rule that made it possible.
-4. Judge from there. If step 3 doesn't clearly beat the current code, stop — the
-    lesson was cheap.
+4. ✅ **DONE** — Folders display converted too, same pattern, no new machinery.
+    See "Step 4" below. Stopping here: dialogs.py and custom_dropdown.py remain
+    imperative and there is no reason to touch them.
 
 ## Current position (2026-08-28)
 
@@ -247,16 +248,56 @@ component, so the win is in *where* the code is, not how much: rendering is one 
 of state, and selection highlighting stopped being a manual per-item branch. Against that,
 hosting cost is real and permanent — a getter instead of the observable, a memo wrapper, an
 explicit `.update()`, and a comment block explaining why, none of which a fully declarative app
-would need. The pattern is now proven and mechanical, so the folders display (the real prize,
-1112 lines, 18 `.update()` calls) is worth doing next; a full port still is not.
+would need. The pattern is now proven and mechanical, so the folders display was worth doing
+next; a full port still is not.
+
+### Step 4 — declarative folders panel (2026-08-28)
+
+`uv_forger/ui/folders_panel.py`: `FoldersPanel` renders the whole project-structure tree —
+root files, folders, nested subfolders, selection highlight, override pencil, and both context
+menus — as pure functions over state. `_create_item_container` (88 lines) and
+`_process_folder_recursive` are gone from `folder_handlers.py`; `_update_folder_display()` is
+down to the count label, the preset button, and a panel re-render. 781 tests pass, ruff clean,
+app launches clean. **Interactive click-through unverified** — see "Left to verify".
+
+Same hosting contract as the packages panel, no new machinery: own `Renderer`, `ft.memo`,
+state as a getter, explicit `controls.folders_panel.update()` after `page.update()`. The
+pattern transferred as predicted.
+
+What was different from step 3:
+
+- **Three callbacks, not one.** Row click, file context menu, folder context menu. Rather than
+  three slots on `Controls`, the panel takes one `FolderPanelCallbacks` dataclass whose fields
+  `attach_handlers` fills in. Its identity stays stable, which is what `ft.memo` compares.
+- **The `data=` dicts are gone.** Rows used to carry `{"path", "type", "name"}` on the control
+  so `_on_item_click(e)` could read `e.control.data`; menu items carried `{"action", ...}`.
+  Closures capture those directly now, so `_on_item_click(e)` became
+  `_on_item_select(path, type, name)` and the two context dispatchers take
+  `(action, path, name)`. This is where most of the test churn came from — a lot of assertions
+  poked at `.data`.
+- **`get_canonical_file_path()` moved to `core/models.py`.** The panel needs it for the
+  override pencil, and `ui/` importing from `handlers/` would have been backwards. It is a
+  pure function over folder dicts, so `core` is where it belonged anyway; `folder_handlers`
+  re-imports it, so the existing test imports still resolve.
+
+Test churn: `_create_item_container` / `_process_folder_recursive` / `_on_item_click` tests
+scattered across three handler test files were replaced by 19 tests in
+`tests/ui/test_folders_panel.py` — flattening order, root-file placement, selection, pencil,
+both menus, dispatch, unwired-callback safety, and the two hosting invariants. Net 781 tests.
+
+### Left to verify
+
+Interactive click-through of the folders panel: select a folder and a file (highlight + status
+line + Edit File button enabling), right-click a file for all four actions, right-click a
+folder for Import Folder from Disk, Add Folder/File, Remove, Import Tree (root files above
+folders), Clear Folders, and a framework change that rebuilds the tree. Startup renders clean
+and 781 tests pass, but this panel's failure modes are silent under test.
+
 
 ### Dependency state
 
 `flet==0.86.5`, `flet-code-editor==0.86.5` (exact pins, must move together),
 `fce-enhanced>=0.2.2` (moved 2026-08-28 — also drops the 0.1.6 `_dirty` collision).
-
-Folders display (folder_handlers.py, 1112 lines, 18 .update() calls) is the real prize
-but also the hairiest — recursive tree + selection paths. Do it third, not first.
 
 skipped: full port, dialog conversion, router. add when the step-3 panel feels better
 than what it replaced (the upgrade half of this is now done — see below).

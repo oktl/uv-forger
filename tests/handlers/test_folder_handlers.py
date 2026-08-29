@@ -8,6 +8,7 @@ import pytest
 
 from uv_forger.core.state import AppState
 from uv_forger.handlers.ui_handler import Handlers
+from uv_forger.ui.folders_panel import FolderPanelCallbacks
 
 
 class MockControl:
@@ -69,7 +70,8 @@ class MockControls:
         self.other_projects_checkbox = MockControl(value=False)
         self.save_as_preset_button = MockControl()
         self.app_subfolders_label = MockText()
-        self.subfolders_container = MockContainer()
+        self.folders_panel = Mock()
+        self.folder_callbacks = FolderPanelCallbacks()
         self.packages_label = MockText()
         self.packages_panel = Mock()
         self.add_package_button = MockControl()
@@ -239,17 +241,14 @@ class TestNavigateToParent:
         assert idx == 1
 
 
-class TestOnItemClick:
-    """Tests for FolderHandlersMixin._on_item_click."""
+class TestOnItemSelect:
+    """Tests for FolderHandlersMixin._on_item_select."""
 
     def test_sets_selected_item_path_and_type(self, mock_handlers):
         handlers, state = mock_handlers
         state.folders = [{"name": "core", "subfolders": [], "files": []}]
 
-        event = Mock()
-        event.control.data = {"path": [0], "type": "folder", "name": "core"}
-
-        handlers._on_item_click(event)
+        handlers._on_item_select([0], "folder", "core")
 
         assert state.selected_item_path == [0]
         assert state.selected_item_type == "folder"
@@ -258,10 +257,7 @@ class TestOnItemClick:
         handlers, state = mock_handlers
         state.folders = [{"name": "core", "subfolders": [], "files": []}]
 
-        event = Mock()
-        event.control.data = {"path": [0], "type": "folder", "name": "core"}
-
-        handlers._on_item_click(event)
+        handlers._on_item_select([0], "folder", "core")
 
         assert "folder" in handlers.controls.status_text.value.lower()
         assert "core" in handlers.controls.status_text.value
@@ -270,14 +266,7 @@ class TestOnItemClick:
         handlers, state = mock_handlers
         state.folders = [{"name": "core", "subfolders": [], "files": ["state.py"]}]
 
-        event = Mock()
-        event.control.data = {
-            "path": [0, "files", 0],
-            "type": "file",
-            "name": "state.py",
-        }
-
-        handlers._on_item_click(event)
+        handlers._on_item_select([0, "files", 0], "file", "state.py")
 
         assert state.selected_item_path == [0, "files", 0]
         assert state.selected_item_type == "file"
@@ -588,46 +577,6 @@ class TestScanFolderFromDisk:
             assert stats["folders"] == 2
             assert stats["files"] == 2
             assert f"{root.name}/core/models.py" in file_overrides
-
-
-class TestFolderContextMenu:
-    """Tests for folder context menu in _create_item_container."""
-
-    def test_folder_has_context_menu(self, mock_handlers):
-        """Folder items should be wrapped in a ContextMenu."""
-        import flet as ft
-
-        handlers, state = mock_handlers
-        state.folders = [{"name": "core", "subfolders": [], "files": []}]
-
-        result = handlers._create_item_container("core", [0], "folder")
-        assert isinstance(result, ft.ContextMenu)
-
-    def test_folder_context_menu_has_import_action(self, mock_handlers):
-        """Folder context menu should contain 'Import Folder from Disk...' action."""
-        handlers, state = mock_handlers
-        state.folders = [{"name": "core", "subfolders": [], "files": []}]
-
-        result = handlers._create_item_container("core", [0], "folder")
-        items = result.secondary_items
-        assert len(items) == 1
-        assert items[0].data["action"] == "import_folder"
-        assert items[0].content.value == "Import Folder from Disk..."
-
-    def test_file_still_has_file_context_menu(self, mock_handlers):
-        """File items should still have the original context menu."""
-        import flet as ft
-
-        handlers, state = mock_handlers
-        state.folders = [{"name": "core", "subfolders": [], "files": ["main.py"]}]
-
-        result = handlers._create_item_container("main.py", [0, "files", 0], "file")
-        assert isinstance(result, ft.ContextMenu)
-        actions = [item.data["action"] for item in result.secondary_items]
-        assert "preview" in actions
-        assert "edit" in actions
-        assert "import" in actions
-        assert "reset" in actions
 
 
 class TestAddItemDialogBrowseFolder:

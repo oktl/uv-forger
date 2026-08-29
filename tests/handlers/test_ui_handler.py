@@ -14,6 +14,7 @@ from uv_forger.ui.dialog_data import (
     OTHER_PROJECT_CHECKBOX_LABEL,
     UI_PROJECT_CHECKBOX_LABEL,
 )
+from uv_forger.ui.folders_panel import FolderPanelCallbacks
 
 
 class MockControl:
@@ -95,7 +96,8 @@ class MockControls:
         )
         self.save_as_preset_button = MockControl()
         self.app_subfolders_label = MockText()
-        self.subfolders_container = MockContainer()
+        self.folders_panel = Mock()
+        self.folder_callbacks = FolderPanelCallbacks()
         self.packages_label = MockText()
         self.packages_panel = Mock()
         self.add_package_button = MockControl()
@@ -204,240 +206,50 @@ def test_set_status_with_update(mock_handlers):
     assert page.updated
 
 
-def test_update_folder_display_simple(mock_handlers):
-    """Test _update_folder_display with simple folder list"""
-    handlers, page, controls, state = mock_handlers
+def test_update_folder_display_updates_label_and_panel(mock_handlers):
+    """_update_folder_display counts the tree and re-renders the panel.
 
-    state.folders = [
-        {"name": "core", "subfolders": [], "files": []},
-        {"name": "ui", "subfolders": [], "files": []},
-        {"name": "utils", "subfolders": [], "files": []},
-    ]
-    handlers._update_folder_display()
-
-    assert len(controls.subfolders_container.content.controls) == 3
-    assert page.updated
-
-
-def test_update_folder_display_nested(mock_handlers):
-    """Test _update_folder_display with nested folder structure"""
+    Row rendering itself lives in tests/ui/test_folders_panel.py.
+    """
     handlers, page, controls, state = mock_handlers
 
     state.folders = [
         {"name": "core", "subfolders": [], "files": []},
         {
             "name": "ui",
-            "subfolders": [
-                {"name": "components", "subfolders": [], "files": []},
-                {"name": "styles", "subfolders": [], "files": []},
-            ],
-            "files": [],
+            "subfolders": [{"name": "components", "subfolders": [], "files": []}],
+            "files": ["main.py"],
         },
     ]
     handlers._update_folder_display()
 
-    # Should have: core, ui, components (indented), styles (indented) = 4 controls
-    assert len(controls.subfolders_container.content.controls) == 4
+    assert controls.app_subfolders_label.value == (
+        "App Subfolders: 3 folders, 4 files"  # 3 __init__.py + main.py
+    )
+    assert page.updated
+    controls.folders_panel.update.assert_called_once()
 
 
 def test_update_folder_display_empty(mock_handlers):
-    """Test _update_folder_display with empty folders"""
+    """_update_folder_display handles an empty folder list."""
     handlers, page, controls, state = mock_handlers
 
     state.folders = []
     handlers._update_folder_display()
 
-    assert len(controls.subfolders_container.content.controls) == 0
+    assert controls.app_subfolders_label.value == "App Subfolders: 0 folders, 0 files"
+    controls.folders_panel.update.assert_called_once()
 
 
-def test_create_item_container_folder(mock_handlers):
-    """Test _create_item_container creates folder context menu correctly"""
+def test_on_item_select_sets_selection(mock_handlers):
+    """Selecting a tree item records its path and type in state."""
     handlers, page, controls, state = mock_handlers
 
-    result = handlers._create_item_container(
-        name="core", item_path=[0], item_type="folder", indent=0
-    )
+    state.folders = [{"name": "core", "subfolders": [], "files": ["state.py"]}]
+    handlers._on_item_select([0, "files", 0], "file", "state.py")
 
-    assert result is not None
-    # Folder items are now wrapped in a ContextMenu
-    container = result.content
-    assert container.data["name"] == "core"
-    assert container.data["type"] == "folder"
-    assert container.data["path"] == [0]
-    assert container.on_click == handlers._on_item_click
-
-
-def test_create_item_container_file(mock_handlers):
-    """Test _create_item_container creates file container correctly.
-
-    File items are wrapped in a ContextMenu; the inner container holds the data.
-    """
-    handlers, page, controls, state = mock_handlers
-
-    result = handlers._create_item_container(
-        name="config.py", item_path=[0, "files", 0], item_type="file", indent=1
-    )
-
-    assert result is not None
-    # File items return ContextMenu wrapping the Container
-    inner = result.content
-    assert inner.data["name"] == "config.py"
-    assert inner.data["type"] == "file"
-    assert inner.data["path"] == [0, "files", 0]
-
-
-def test_create_item_container_selected_folder(mock_handlers):
-    """Test _create_item_container highlights selected folder"""
-    handlers, page, controls, state = mock_handlers
-
-    state.selected_item_path = [0]
-    state.selected_item_type = "folder"
-
-    result = handlers._create_item_container(
-        name="core", item_path=[0], item_type="folder", indent=0
-    )
-
-    # Folder is wrapped in ContextMenu; inner container has selection highlighting
-    container = result.content
-    assert container.bgcolor is not None
-    assert container.border is not None
-
-
-def test_create_item_container_selected_file(mock_handlers):
-    """Test _create_item_container highlights selected file"""
-    handlers, page, controls, state = mock_handlers
-
-    state.selected_item_path = [0, "files", 0]
-    state.selected_item_type = "file"
-
-    result = handlers._create_item_container(
-        name="config.py", item_path=[0, "files", 0], item_type="file", indent=1
-    )
-
-    # File items return ContextMenu; inner container has highlighting
-    inner = result.content
-    assert inner.bgcolor is not None
-    assert inner.border is not None
-
-
-def test_create_item_container_not_selected(mock_handlers):
-    """Test _create_item_container doesn't highlight non-selected items"""
-    handlers, page, controls, state = mock_handlers
-
-    state.selected_item_path = [1]
-    state.selected_item_type = "folder"
-
-    result = handlers._create_item_container(
-        name="core", item_path=[0], item_type="folder", indent=0
-    )
-
-    # Folder wrapped in ContextMenu; inner container should NOT have highlighting
-    container = result.content
-    assert container.bgcolor is None
-    assert container.border is None
-
-
-def test_process_folder_recursive_minimal_dict(mock_handlers):
-    """Test _process_folder_recursive with minimal dict folder"""
-    handlers, page, controls, state = mock_handlers
-
-    controls_list = []
-    handlers._process_folder_recursive(
-        {"name": "core", "subfolders": [], "files": []}, [0], 0, controls_list
-    )
-
-    assert len(controls_list) == 1
-    assert _get_item_data(controls_list[0])["name"] == "core"
-    assert _get_item_data(controls_list[0])["type"] == "folder"
-
-
-def test_process_folder_recursive_dict(mock_handlers):
-    """Test _process_folder_recursive with dict folder"""
-    handlers, page, controls, state = mock_handlers
-
-    folder_dict = {"name": "ui", "subfolders": [], "files": []}
-    controls_list = []
-    handlers._process_folder_recursive(folder_dict, [0], 0, controls_list)
-
-    assert len(controls_list) == 1
-    assert _get_item_data(controls_list[0])["name"] == "ui"
-    assert _get_item_data(controls_list[0])["type"] == "folder"
-
-
-def _get_item_data(control):
-    """Extract data dict from a control (Container or ContextMenu wrapping one)."""
-    if hasattr(control, "data") and control.data is not None:
-        return control.data
-    # ContextMenu wrapping a Container
-    return control.content.data
-
-
-def test_process_folder_recursive_with_files(mock_handlers):
-    """Test _process_folder_recursive processes files correctly"""
-    handlers, page, controls, state = mock_handlers
-
-    folder_dict = {"name": "core", "subfolders": [], "files": ["config.py", "state.py"]}
-    controls_list = []
-    handlers._process_folder_recursive(folder_dict, [0], 0, controls_list)
-
-    # Should have 1 folder + 2 files = 3 controls
-    assert len(controls_list) == 3
-    assert _get_item_data(controls_list[0])["name"] == "core"
-    assert _get_item_data(controls_list[0])["type"] == "folder"
-    assert _get_item_data(controls_list[1])["name"] == "config.py"
-    assert _get_item_data(controls_list[1])["type"] == "file"
-    assert _get_item_data(controls_list[2])["name"] == "state.py"
-    assert _get_item_data(controls_list[2])["type"] == "file"
-
-
-def test_process_folder_recursive_with_subfolders(mock_handlers):
-    """Test _process_folder_recursive processes subfolders recursively"""
-    handlers, page, controls, state = mock_handlers
-
-    folder_dict = {
-        "name": "ui",
-        "subfolders": [
-            {"name": "components", "subfolders": [], "files": []},
-            {"name": "styles", "subfolders": [], "files": []},
-        ],
-        "files": [],
-    }
-    controls_list = []
-    handlers._process_folder_recursive(folder_dict, [0], 0, controls_list)
-
-    # Should have ui + components + styles = 3 folders
-    assert len(controls_list) == 3
-    assert _get_item_data(controls_list[0])["name"] == "ui"
-    assert _get_item_data(controls_list[1])["name"] == "components"
-    assert _get_item_data(controls_list[2])["name"] == "styles"
-
-
-def test_process_folder_recursive_nested_with_files(mock_handlers):
-    """Test _process_folder_recursive with nested folders and files"""
-    handlers, page, controls, state = mock_handlers
-
-    folder_dict = {
-        "name": "app",
-        "subfolders": [
-            {"name": "core", "subfolders": [], "files": ["state.py", "models.py"]}
-        ],
-        "files": ["main.py"],
-    }
-    controls_list = []
-    handlers._process_folder_recursive(folder_dict, [0], 0, controls_list)
-
-    # app + main.py + core + state.py + models.py = 5 controls
-    assert len(controls_list) == 5
-    assert _get_item_data(controls_list[0])["name"] == "app"
-    assert _get_item_data(controls_list[0])["type"] == "folder"
-    assert _get_item_data(controls_list[1])["name"] == "main.py"
-    assert _get_item_data(controls_list[1])["type"] == "file"
-    assert _get_item_data(controls_list[2])["name"] == "core"
-    assert _get_item_data(controls_list[2])["type"] == "folder"
-    assert _get_item_data(controls_list[3])["name"] == "state.py"
-    assert _get_item_data(controls_list[3])["type"] == "file"
-    assert _get_item_data(controls_list[4])["name"] == "models.py"
-    assert _get_item_data(controls_list[4])["type"] == "file"
+    assert state.selected_item_path == [0, "files", 0]
+    assert state.selected_item_type == "file"
 
 
 def test_validate_inputs_empty_project_name(mock_handlers):
@@ -1591,7 +1403,9 @@ def test_packages_panel_renders_rows_from_state():
     render = PackagesPanel.__wrapped__  # the component body, no renderer needed
 
     state = AppState()
-    assert len(render(lambda: state, lambda _idx: None).content.controls) == 1  # placeholder
+    assert (
+        len(render(lambda: state, lambda _idx: None).content.controls) == 1
+    )  # placeholder
 
     state.packages = ["flet", "requests", "httpx"]
     state.dev_packages = {"httpx"}

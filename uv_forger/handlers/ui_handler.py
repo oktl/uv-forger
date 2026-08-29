@@ -111,6 +111,11 @@ def attach_handlers(page: ft.Page, state: AppState) -> None:
     # PackagesPanel is built before handlers exist, so it dispatches clicks
     # through this slot on Controls.
     controls.on_package_select = handlers._on_package_select
+    # FoldersPanel likewise dispatches through the callbacks object
+    # build_main_view created for it.
+    controls.folder_callbacks.select = handlers._on_item_select
+    controls.folder_callbacks.file_action = handlers._on_file_context_action
+    controls.folder_callbacks.folder_action = handlers._on_folder_context_action
     controls.add_package_button.on_click = wrap_async(handlers.on_add_package)
     controls.remove_package_button.on_click = wrap_async(handlers.on_remove_package)
     controls.clear_packages_button.on_click = wrap_async(handlers.on_clear_packages)

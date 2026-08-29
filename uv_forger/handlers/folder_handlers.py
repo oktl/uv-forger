@@ -6,9 +6,9 @@ from typing import Any
 
 import flet as ft
 
+from uv_forger.core.models import get_canonical_file_path
 from uv_forger.core.validator import validate_folder_name
 from uv_forger.ui.dialogs import create_add_item_dialog
-from uv_forger.ui.ui_config import UIConfig
 
 IMPORTABLE_EXTENSIONS: list[str] = [
     "py",
@@ -118,217 +118,11 @@ def scan_folder_from_disk(
     return root, file_overrides, stats
 
 
-def get_canonical_file_path(
-    folders: list[dict[str, Any]],
-    item_path: list[int | str],
-    root_files: list[str] | None = None,
-) -> str | None:
-    """Walk the folder tree by navigation path to build a canonical file path.
-
-    Args:
-        folders: Normalized folder list from state.
-        item_path: Navigation path (e.g., [0, "files", 1] or [0, "subfolders", 0, "files", 2]).
-        root_files: Optional list of root-level file names for imported structures.
-
-    Returns:
-        Canonical path string like "core/state.py", or None if path is invalid.
-    """
-    # Handle root_files paths (e.g., ["root_files", 0])
-    if item_path and len(item_path) == 2 and item_path[0] == "root_files":
-        idx = item_path[1]
-        if root_files and isinstance(idx, int) and 0 <= idx < len(root_files):
-            return root_files[idx]
-        return None
-
-    parts: list[str] = []
-    current: Any = folders
-    for segment in item_path:
-        if isinstance(segment, int):
-            try:
-                current = current[segment]
-            except (IndexError, KeyError, TypeError):
-                return None
-            # If this is a folder dict, record its name
-            if isinstance(current, dict) and "name" in current:
-                parts.append(current["name"])
-            # If this is a string (a filename), record it
-            elif isinstance(current, str):
-                parts.append(current)
-        elif segment == "subfolders":
-            current = current.get("subfolders", []) if isinstance(current, dict) else []
-        elif segment == "files":
-            current = current.get("files", []) if isinstance(current, dict) else []
-    return "/".join(parts) if parts else None
-
-
 class FolderHandlersMixin:
     """Mixin for folder tree display, selection, add/remove operations.
 
     Expects HandlerBase helpers available via self.
     """
-
-    def _create_item_container(
-        self, name: str, item_path: list[int | str], item_type: str, indent: int = 0
-    ) -> ft.Control:
-        """Create a clickable container for a folder or file.
-
-        For files, wraps the container in a ContextMenu with preview/edit/import/reset
-        actions. Files with content overrides show a pencil icon indicator.
-
-        Args:
-            name: Display name of the item.
-            item_path: Navigation path to the item.
-            item_type: Either "folder" or "file".
-            indent: Indentation level (0 = root).
-
-        Returns:
-            Configured Container (or ContextMenu wrapping one) with click handler.
-        """
-        is_selected = (
-            self.state.selected_item_path == item_path
-            and self.state.selected_item_type == item_type
-        )
-
-        if item_type == "folder":
-            icon = ft.Icons.FOLDER
-            icon_color = UIConfig.COLOR_FOLDER_ICON
-            display_text = f"{name}/"
-            text_color = None
-        else:
-            icon = ft.Icons.INSERT_DRIVE_FILE
-            icon_color = UIConfig.COLOR_FILE_ICON
-            display_text = name
-            text_color = UIConfig.COLOR_FILE_TEXT
-
-        row_controls = [
-            ft.Icon(icon, size=13, color=icon_color),
-            ft.Text(
-                display_text,
-                size=UIConfig.TEXT_SIZE_SMALL,
-                font_family="monospace",
-                color=text_color,
-                overflow=ft.TextOverflow.ELLIPSIS,
-                expand=True,
-            ),
-        ]
-
-        # Show pencil icon for files with content overrides
-        if item_type == "file":
-            canonical = get_canonical_file_path(
-                self.state.folders, item_path, root_files=self.state.root_files
-            )
-            if canonical and canonical in self.state.file_overrides:
-                row_controls.append(
-                    ft.Icon(ft.Icons.EDIT_NOTE, size=10, color=UIConfig.COLOR_INFO)
-                )
-
-        container = ft.Container(
-            content=ft.Row(row_controls, spacing=4, tight=True),
-            data={"path": item_path, "type": item_type, "name": name},
-            bgcolor=UIConfig.SELECTED_ITEM_BGCOLOR if is_selected else None,
-            border=(
-                ft.Border.all(
-                    UIConfig.BORDER_WIDTH_DEFAULT, UIConfig.SELECTED_ITEM_BORDER_COLOR
-                )
-                if is_selected
-                else None
-            ),
-            on_click=self._on_item_click,
-            padding=ft.Padding(
-                left=4 + indent * UIConfig.FOLDER_TREE_INDENT_PX,
-                right=4,
-                top=1,
-                bottom=1,
-            ),
-            border_radius=2,
-            margin=0,
-        )
-
-        # Wrap file items in a context menu
-        if item_type == "file":
-            context_menu = ft.ContextMenu(
-                content=container,
-                secondary_items=[
-                    ft.PopupMenuItem(
-                        icon=ft.Icons.PREVIEW,
-                        content=ft.Text("Preview Content"),
-                        data={"action": "preview", "path": item_path, "name": name},
-                        on_click=self._on_file_context_action,
-                    ),
-                    ft.PopupMenuItem(
-                        icon=ft.Icons.EDIT,
-                        content=ft.Text("Edit Content..."),
-                        data={"action": "edit", "path": item_path, "name": name},
-                        on_click=self._on_file_context_action,
-                    ),
-                    ft.PopupMenuItem(
-                        icon=ft.Icons.FILE_OPEN,
-                        content=ft.Text("Import from File..."),
-                        data={"action": "import", "path": item_path, "name": name},
-                        on_click=self._on_file_context_action,
-                    ),
-                    ft.PopupMenuItem(
-                        icon=ft.Icons.RESTART_ALT,
-                        content=ft.Text("Reset to Default"),
-                        data={"action": "reset", "path": item_path, "name": name},
-                        on_click=self._on_file_context_action,
-                    ),
-                ],
-            )
-            return context_menu
-
-        # Wrap folder items in a context menu
-        if item_type == "folder":
-            context_menu = ft.ContextMenu(
-                content=container,
-                secondary_items=[
-                    ft.PopupMenuItem(
-                        icon=ft.Icons.CREATE_NEW_FOLDER,
-                        content=ft.Text("Import Folder from Disk..."),
-                        data={
-                            "action": "import_folder",
-                            "path": item_path,
-                            "name": name,
-                        },
-                        on_click=self._on_folder_context_action,
-                    ),
-                ],
-            )
-            return context_menu
-
-        return container
-
-    def _process_folder_recursive(
-        self,
-        folder: dict[str, Any],
-        base_path: list[int | str],
-        indent: int,
-        display_controls: list,
-    ) -> None:
-        """Recursively process a folder dict and add to display controls.
-
-        Args:
-            folder: Normalized folder dict with name, subfolders, files keys.
-            base_path: Navigation path to this folder.
-            indent: Current indentation level.
-            display_controls: List to append created containers to.
-        """
-        name = folder.get("name", "")
-        display_controls.append(
-            self._create_item_container(name, base_path, "folder", indent)
-        )
-
-        for file_idx, file_name in enumerate(folder.get("files", [])):
-            file_path = base_path + ["files", file_idx]
-            display_controls.append(
-                self._create_item_container(file_name, file_path, "file", indent + 1)
-            )
-
-        for subfolder_idx, subfolder in enumerate(folder.get("subfolders", [])):
-            subfolder_path = base_path + ["subfolders", subfolder_idx]
-            self._process_folder_recursive(
-                subfolder, subfolder_path, indent + 1, display_controls
-            )
 
     @staticmethod
     def _count_folders_and_files(folders: list[dict[str, Any]]) -> tuple[int, int]:
@@ -357,22 +151,11 @@ class FolderHandlersMixin:
         return folder_count, file_count
 
     def _update_folder_display(self) -> None:
-        """Update the folder display container with current folder structure."""
-        folder_controls = []
+        """Refresh the structure label and re-render the folders panel.
 
-        # Show root-level files from imported structure before folders
-        if self.state.imported_structure and self.state.root_files:
-            for rf_idx, rf_name in enumerate(self.state.root_files):
-                rf_path = ["root_files", rf_idx]
-                folder_controls.append(
-                    self._create_item_container(rf_name, rf_path, "file", indent=0)
-                )
-
-        for idx, folder in enumerate(self.state.folders):
-            self._process_folder_recursive(folder, [idx], 0, folder_controls)
-
-        self.controls.subfolders_container.content.controls = folder_controls
-
+        The tree itself is rendered declaratively by
+        :func:`uv_forger.ui.folders_panel.FoldersPanel` straight from state.
+        """
         folder_count, file_count = self._count_folders_and_files(self.state.folders)
         if self.state.imported_structure:
             total_files = file_count + len(self.state.root_files)
@@ -383,19 +166,20 @@ class FolderHandlersMixin:
 
         self._update_preset_button_state()
         self.page.update()
+        # Must come after page.update(): Component.update() is the only path
+        # that re-renders and patches the client.
+        self.controls.folders_panel.update()
 
-    def _on_item_click(self, e: ft.ControlEvent) -> None:
-        """Handle click on folder/file item to select it."""
-        self.state.selected_item_path = e.control.data["path"]
-        self.state.selected_item_type = e.control.data["type"]
-        item_name = e.control.data["name"]
-        self._set_status(
-            f"Selected {e.control.data['type']}: {item_name}", "info", update=False
-        )
+    def _on_item_select(
+        self, item_path: list[int | str], item_type: str, name: str
+    ) -> None:
+        """Handle a folder/file row click from FoldersPanel."""
+        self.state.selected_item_path = item_path
+        self.state.selected_item_type = item_type
+        self._set_status(f"Selected {item_type}: {name}", "info", update=False)
         # Enable/disable edit file button based on whether a file is selected
         if hasattr(self.controls, "edit_file_button"):
-            is_file = e.control.data["type"] == "file"
-            self.controls.edit_file_button.disabled = not is_file
+            self.controls.edit_file_button.disabled = item_type != "file"
         self._update_folder_display()
 
     def _get_folder_hierarchy(self) -> list[dict]:
@@ -760,12 +544,10 @@ class FolderHandlersMixin:
             return True
         return False
 
-    def _on_folder_context_action(self, e: ft.ControlEvent) -> None:
-        """Dispatch folder context menu actions."""
-        data = e.control.data
-        action = data["action"]
-        item_path = data["path"]
-
+    def _on_folder_context_action(
+        self, action: str, item_path: list[int | str], _name: str
+    ) -> None:
+        """Dispatch a folder context-menu action to the appropriate handler."""
         if action == "import_folder":
             asyncio.create_task(self._import_folder_from_disk(parent_path=item_path))
 
@@ -816,13 +598,10 @@ class FolderHandlersMixin:
             status += f", {stats['skipped']} skipped"
         self._set_status(status, "success", update=True)
 
-    def _on_file_context_action(self, e: ft.ControlEvent) -> None:
-        """Dispatch context menu actions to the appropriate handler."""
-        data = e.control.data
-        action = data["action"]
-        item_path = data["path"]
-        name = data["name"]
-
+    def _on_file_context_action(
+        self, action: str, item_path: list[int | str], name: str
+    ) -> None:
+        """Dispatch a file context-menu action to the appropriate handler."""
         if action == "preview":
             asyncio.create_task(self._preview_file(item_path, name))
         elif action == "edit":

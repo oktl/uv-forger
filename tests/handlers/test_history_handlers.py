@@ -8,6 +8,7 @@ import pytest
 from uv_forger.core.history_manager import ProjectHistoryEntry
 from uv_forger.core.state import AppState
 from uv_forger.handlers.ui_handler import Handlers
+from uv_forger.ui.folders_panel import FolderPanelCallbacks
 
 
 class MockPage:
@@ -64,7 +65,8 @@ class MockControls:
         self.app_subfolders_label = Mock(value="App Subfolders:")
         self.packages_label = Mock(value="Packages: 0")
         self.packages_panel = Mock()
-        self.subfolders_container = Mock(content=Mock(controls=[]))
+        self.folders_panel = Mock()
+        self.folder_callbacks = FolderPanelCallbacks()
         self.metadata_button = Mock()
         self.metadata_summary = Mock(value="")
 

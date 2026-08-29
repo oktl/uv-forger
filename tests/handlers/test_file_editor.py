@@ -10,6 +10,7 @@ import pytest
 from uv_forger.core.state import AppState
 from uv_forger.handlers.folder_handlers import get_canonical_file_path
 from uv_forger.handlers.ui_handler import Handlers
+from uv_forger.ui.folders_panel import FolderPanelCallbacks
 
 
 # --- Reuse mock classes from test_ui_handler ---
@@ -79,7 +80,8 @@ class MockControls:
         self.other_projects_checkbox = MockControl(value=False)
         self.save_as_preset_button = MockControl()
         self.app_subfolders_label = MockText()
-        self.subfolders_container = MockContainer()
+        self.folders_panel = Mock()
+        self.folder_callbacks = FolderPanelCallbacks()
         self.packages_label = MockText()
         self.packages_panel = Mock()
         self.add_package_button = MockControl()
@@ -271,71 +273,25 @@ class TestFileOverridesInBuild:
 # ---- Context menu + pencil icon tests ----
 
 
-class TestContextMenuAndIndicator:
-    """Tests for context menu on files and pencil icon indicator."""
+class TestEditFileButtonState:
+    """Selecting a tree item enables the Edit File button only for files.
 
-    def test_file_item_returns_context_menu(self, handlers):
-        h, _, _, state = handlers
-        state.folders = [{"name": "core", "subfolders": [], "files": ["main.py"]}]
-
-        result = h._create_item_container("main.py", [0, "files", 0], "file")
-        # Should be a ContextMenu (has secondary_items)
-        assert hasattr(result, "secondary_items")
-        assert len(result.secondary_items) == 4
-
-    def test_folder_item_returns_context_menu(self, handlers):
-        h, _, _, state = handlers
-        state.folders = [{"name": "core", "subfolders": [], "files": []}]
-
-        result = h._create_item_container("core", [0], "folder")
-        # Should be a ContextMenu wrapping the folder container
-        assert hasattr(result, "secondary_items")
-        assert result.content.data["type"] == "folder"
-
-    def test_pencil_icon_when_override_exists(self, handlers):
-        h, _, _, state = handlers
-        state.folders = [{"name": "core", "subfolders": [], "files": ["main.py"]}]
-        state.file_overrides = {"core/main.py": "# custom"}
-
-        result = h._create_item_container("main.py", [0, "files", 0], "file")
-        inner = result.content  # ContextMenu -> Container
-        row_controls = inner.content.controls
-        # Should have 3 items: file icon, text, pencil icon
-        assert len(row_controls) == 3
-
-    def test_no_pencil_icon_without_override(self, handlers):
-        h, _, _, state = handlers
-        state.folders = [{"name": "core", "subfolders": [], "files": ["main.py"]}]
-        state.file_overrides = {}
-
-        result = h._create_item_container("main.py", [0, "files", 0], "file")
-        inner = result.content
-        row_controls = inner.content.controls
-        # Should have 2 items: file icon, text (no pencil)
-        assert len(row_controls) == 2
+    Row rendering (context menus, pencil indicator) is covered in
+    tests/ui/test_folders_panel.py.
+    """
 
     def test_edit_file_button_disabled_for_folder_selection(self, handlers):
         h, _, controls, state = handlers
         state.folders = [{"name": "core", "subfolders": [], "files": []}]
 
-        event = Mock()
-        event.control = Mock()
-        event.control.data = {"path": [0], "type": "folder", "name": "core"}
-        h._on_item_click(event)
+        h._on_item_select([0], "folder", "core")
         assert controls.edit_file_button.disabled is True
 
     def test_edit_file_button_enabled_for_file_selection(self, handlers):
         h, _, controls, state = handlers
         state.folders = [{"name": "core", "subfolders": [], "files": ["main.py"]}]
 
-        event = Mock()
-        event.control = Mock()
-        event.control.data = {
-            "path": [0, "files", 0],
-            "type": "file",
-            "name": "main.py",
-        }
-        h._on_item_click(event)
+        h._on_item_select([0, "files", 0], "file", "main.py")
         assert controls.edit_file_button.disabled is False
 
 

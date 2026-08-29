@@ -15,6 +15,7 @@ from flet.components.component import Renderer
 from uv_forger.core.constants import PYTHON_VERSIONS
 from uv_forger.core.preset_manager import load_presets
 from uv_forger.ui.custom_dropdown import CustomDropdown
+from uv_forger.ui.folders_panel import FolderPanelCallbacks, FoldersPanel
 from uv_forger.ui.packages_panel import PackagesPanel
 from uv_forger.ui.theme_manager import get_theme_colors
 from uv_forger.ui.ui_config import UIConfig
@@ -42,7 +43,9 @@ class Controls:
         ui_project_checkbox: Checkbox for UI project option.
         other_projects_checkbox: Checkbox for Other Project types option.
         app_subfolders_label: Label for folder display.
-        subfolders_container: Container showing folder structure.
+        folders_panel: FoldersPanel component rendering the project structure tree.
+        folder_callbacks: Click callbacks for folders_panel; filled in by
+            attach_handlers().
         save_as_preset_button: Button to save current config as a preset.
         add_folder_button: Button to add a folder.
         remove_folder_button: Button to remove a folder.
@@ -96,7 +99,8 @@ class Controls:
         self.ui_project_checkbox: ft.Checkbox
         self.other_projects_checkbox: ft.Checkbox
         self.app_subfolders_label: ft.Text
-        self.subfolders_container: ft.Container
+        self.folders_panel: ft.Control
+        self.folder_callbacks: FolderPanelCallbacks = FolderPanelCallbacks()
         self.save_as_preset_button: ft.Button
         self.add_folder_button: ft.Button
         self.remove_folder_button: ft.Button
@@ -356,18 +360,7 @@ def create_controls(state: AppState, colors: dict) -> Controls:
 
     # Folder management controls
     controls.app_subfolders_label = ft.Text("App Subfolders:")
-    controls.subfolders_container = ft.Container(
-        content=ft.Column(
-            controls=[],  # Populated dynamically from template data
-            spacing=0,
-            scroll=ft.ScrollMode.AUTO,
-        ),
-        border=ft.Border.all(1, ft.Colors.GREY_700),
-        border_radius=4,
-        padding=10,
-        height=UIConfig.SUBFOLDERS_HEIGHT,
-        width=UIConfig.SPLIT_CONTAINER_WIDTH,
-    )
+    controls.folders_panel = render_folders_panel(state, controls)
 
     _split_btn_style = ft.ButtonStyle(
         text_style=ft.TextStyle(size=UIConfig.TEXT_SIZE_SMALL)
@@ -674,7 +667,7 @@ def create_sections(controls: Controls, state: AppState) -> None:
                     ft.Column(
                         controls=[
                             controls.app_subfolders_label,
-                            controls.subfolders_container,
+                            controls.folders_panel,
                             ft.Row(
                                 controls=[
                                     controls.add_folder_button,
@@ -862,6 +855,24 @@ def render_packages_panel(state: AppState, controls: Controls) -> ft.Control:
             lambda: state,
             lambda idx: controls.on_package_select and controls.on_package_select(idx),
         )
+    )
+
+
+def render_folders_panel(state: AppState, controls: Controls) -> ft.Control:
+    """Render the declarative project-structure panel for the imperative view.
+
+    Same hosting contract as `render_packages_panel`: own `Renderer`, `ft.memo`,
+    and state passed as a getter so the component never subscribes to it.
+
+    Args:
+        state: Application state, wrapped in a getter.
+        controls: Holds `folder_callbacks`, wired by `attach_handlers`.
+
+    Returns:
+        The rendered `Component` to drop into the layout.
+    """
+    return Renderer().render(
+        lambda: ft.memo(FoldersPanel)(lambda: state, controls.folder_callbacks)
     )
 
 
