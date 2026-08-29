@@ -270,10 +270,13 @@ class OptionHandlersMixin:
             pkg for pkg in manual if pkg not in new_auto_set
         ]
         self.state.auto_packages = new_auto
-        # Prune dev_packages to only include packages still in the list
-        self.state.dev_packages &= set(self.state.packages)
-        # Auto-mark always-dev packages
-        self.state.dev_packages |= ALWAYS_DEV_PACKAGES & set(self.state.packages)
+        # Prune dev_packages to packages still in the list, then auto-mark
+        # always-dev ones. Rebound rather than mutated in place: AppState is
+        # observable and sets, unlike lists/dicts, only notify on reassignment.
+        current = set(self.state.packages)
+        self.state.dev_packages = (self.state.dev_packages & current) | (
+            ALWAYS_DEV_PACKAGES & current
+        )
 
         self._update_folder_display()
         self._update_package_display()

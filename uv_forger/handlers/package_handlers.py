@@ -67,7 +67,9 @@ class PackageHandlersMixin:
     def _update_package_display(self) -> None:
         """Update the packages container with the current package list."""
         # Catch-all: ensure always-dev packages are marked regardless of entry path
-        self.state.dev_packages |= ALWAYS_DEV_PACKAGES & set(self.state.packages)
+        self.state.dev_packages = self.state.dev_packages | (
+            ALWAYS_DEV_PACKAGES & set(self.state.packages)
+        )
         if self.state.packages:
             package_controls = [
                 self._create_package_item(pkg, idx)
@@ -110,10 +112,10 @@ class PackageHandlersMixin:
             added = [pkg for pkg in new_packages if pkg not in existing]
             self.state.packages.extend(added)
             existing.update(added)
-            if dev:
-                self.state.dev_packages.update(added)
+            new_dev = set(added) if dev else set()
             # Auto-mark always-dev packages
-            self.state.dev_packages |= ALWAYS_DEV_PACKAGES & set(added)
+            new_dev |= ALWAYS_DEV_PACKAGES & set(added)
+            self.state.dev_packages = self.state.dev_packages | new_dev
             dialog.open = False
             self.state.active_dialog = None
             self._update_package_display()
@@ -160,10 +162,10 @@ class PackageHandlersMixin:
                 )
                 return
             if pkg in self.state.dev_packages:
-                self.state.dev_packages.discard(pkg)
+                self.state.dev_packages = self.state.dev_packages - {pkg}
                 self._set_status(f"'{pkg}' moved to runtime.", "info", update=False)
             else:
-                self.state.dev_packages.add(pkg)
+                self.state.dev_packages = self.state.dev_packages | {pkg}
                 self._set_status(f"'{pkg}' moved to dev.", "info", update=False)
             self._update_package_display()
 
@@ -220,7 +222,7 @@ class PackageHandlersMixin:
         idx = self.state.selected_package_idx
         if 0 <= idx < len(self.state.packages):
             pkg = self.state.packages.pop(idx)
-            self.state.dev_packages.discard(pkg)
+            self.state.dev_packages = self.state.dev_packages - {pkg}
             self.state.selected_package_idx = None
             self._update_package_display()
             self._set_status(f"Package '{pkg}' removed.", "success", update=True)

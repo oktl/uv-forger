@@ -8,9 +8,13 @@ from collections.abc import Callable
 from dataclasses import dataclass, field, fields
 from typing import Any, Literal
 
+import flet as ft
+
+from uv_forger.core.models import to_plain
 from uv_forger.core.settings_manager import AppSettings
 
 
+@ft.observable
 @dataclass
 class AppState:
     """Container for application state data.
@@ -116,10 +120,15 @@ class AppState:
         """Reset state to initial values.
 
         Preserves is_dark_mode and settings since those persist across resets.
+
+        Values are copied through to_plain() so the observable wrappers are
+        rebuilt with this instance as their owner. Assigning the throwaway
+        instance's collections directly would leave them notifying *its*
+        subscribers, silently killing UI updates after a reset.
         """
         preserved_dark_mode = self.is_dark_mode
         preserved_settings = self.settings
         fresh = AppState(settings=preserved_settings)
         for attr in fields(self):
-            setattr(self, attr.name, getattr(fresh, attr.name))
+            setattr(self, attr.name, to_plain(getattr(fresh, attr.name)))
         self.is_dark_mode = preserved_dark_mode

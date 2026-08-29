@@ -10,6 +10,7 @@ import json
 from dataclasses import asdict, dataclass, field, fields
 from typing import Any
 
+from uv_forger.core.models import to_plain
 from uv_forger.core.settings_manager import SETTINGS_DIR
 
 MAX_HISTORY_ENTRIES = 5
@@ -167,7 +168,7 @@ def make_history_entry(
         framework=framework,
         other_project_enabled=other_project_enabled,
         project_type=project_type,
-        folders=list(folders),
+        folders=to_plain(folders),
         packages=list(packages),
         dev_packages=list(dev_packages) if dev_packages else [],
         imported_structure=imported_structure,

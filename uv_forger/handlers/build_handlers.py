@@ -299,7 +299,9 @@ class BuildHandlersMixin:
         self.state.dev_packages = set(getattr(cfg, "dev_packages", []))
         _append_post_build_packages(self.state.packages, self.state.settings)
         self.state.auto_packages = list(self.state.packages)
-        self.state.dev_packages |= ALWAYS_DEV_PACKAGES & set(self.state.packages)
+        self.state.dev_packages = self.state.dev_packages | (
+            ALWAYS_DEV_PACKAGES & set(self.state.packages)
+        )
 
         self.controls.python_version_dropdown.value = cfg.python_version
         self.controls.create_git_checkbox.value = cfg.git_enabled

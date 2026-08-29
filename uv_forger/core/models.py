@@ -278,3 +278,28 @@ class BuildSummaryConfig:
             github_username=config.github_username,
             github_repo_private=config.github_repo_private,
         )
+
+
+def to_plain(value: Any) -> Any:
+    """Recursively convert observable collections back to plain containers.
+
+    ``AppState`` is decorated with ``@ft.observable``, which transparently wraps
+    its ``list`` and ``dict`` fields in ``ObservableList`` / ``ObservableDict``
+    so in-place mutation still notifies subscribers. Those wrappers subclass
+    ``list`` and ``dict``, so they serialize fine through ``json.dumps`` — but
+    ``dataclasses.asdict()`` rebuilds nested containers via ``type(obj)(...)``
+    and their constructors require ``(owner, field)`` arguments, raising
+    ``TypeError``. Call this on any state-derived structure before storing it in
+    a dataclass that will later be passed to ``asdict()``.
+
+    Args:
+        value: Any value; nested lists and dicts are rebuilt as plain ones.
+
+    Returns:
+        The same data using only plain ``list`` and ``dict`` containers.
+    """
+    if isinstance(value, dict):
+        return {key: to_plain(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [to_plain(item) for item in value]
+    return value
