@@ -6,13 +6,16 @@ the build_main_view function for constructing the application's visual layout.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import TYPE_CHECKING
 
 import flet as ft
+from flet.components.component import Renderer
 
 from uv_forger.core.constants import PYTHON_VERSIONS
 from uv_forger.core.preset_manager import load_presets
 from uv_forger.ui.custom_dropdown import CustomDropdown
+from uv_forger.ui.packages_panel import PackagesPanel
 from uv_forger.ui.theme_manager import get_theme_colors
 from uv_forger.ui.ui_config import UIConfig
 
@@ -45,7 +48,9 @@ class Controls:
         remove_folder_button: Button to remove a folder.
         edit_file_button: Button to edit a file's content.
         packages_label: Label for packages display.
-        packages_container: Container showing packages list.
+        packages_panel: PackagesPanel component rendering the package list.
+        on_package_select: Callback invoked with the clicked package index;
+            wired by attach_handlers().
         add_package_button: Button to open the add-packages dialog.
         remove_package_button: Button to remove the selected package.
         clear_packages_button: Button to remove all packages from the list.
@@ -99,7 +104,8 @@ class Controls:
         self.import_tree_button: ft.Button
         self.clear_folders_button: ft.Button
         self.packages_label: ft.Text
-        self.packages_container: ft.Container
+        self.packages_panel: ft.Control
+        self.on_package_select: Callable[[int], None] | None = None
         self.add_package_button: ft.Button
         self.remove_package_button: ft.Button
         self.clear_packages_button: ft.Button
@@ -418,18 +424,7 @@ def create_controls(state: AppState, colors: dict) -> Controls:
     # Package management controls
     controls.packages_label = ft.Text("Packages: 0")
 
-    controls.packages_container = ft.Container(
-        content=ft.Column(
-            controls=[],
-            spacing=0,
-            scroll=ft.ScrollMode.AUTO,
-        ),
-        border=ft.Border.all(1, ft.Colors.GREY_700),
-        border_radius=4,
-        padding=10,
-        height=UIConfig.SUBFOLDERS_HEIGHT,
-        width=UIConfig.SPLIT_CONTAINER_WIDTH,
-    )
+    controls.packages_panel = render_packages_panel(state, controls)
 
     controls.add_package_button = ft.Button(
         "Add Packages...",
@@ -711,7 +706,7 @@ def create_sections(controls: Controls, state: AppState) -> None:
                     ft.Column(
                         controls=[
                             controls.packages_label,
-                            controls.packages_container,
+                            controls.packages_panel,
                             ft.Row(
                                 controls=[
                                     controls.add_package_button,
@@ -837,6 +832,36 @@ def create_layout(controls: Controls) -> ft.Column:
             ft.Divider(height=UIConfig.SPACING_LARGE),
         ],
         horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+    )
+
+
+def render_packages_panel(state: AppState, controls: Controls) -> ft.Control:
+    """Render the declarative packages panel for the imperative main view.
+
+    PackagesPanel is an `@ft.component`, so it can only be called inside a
+    renderer. The app is otherwise imperative, so this one subtree gets its own
+    `Renderer` — `page.render()` would take over `views[0]` and flip the whole
+    session into components mode.
+
+    `ft.memo` is required, not an optimization: without it every imperative
+    `page.update()` re-renders the body into fresh control ids without patching
+    the client, and every click inside the panel is silently dropped. Memoized,
+    an unchanged parent update reuses the previous render; an explicit
+    `controls.packages_panel.update()` re-renders *and* patches.
+
+    Args:
+        state: Application state, passed as a getter so the component is not
+            subscribed to it (see `uv_forger.ui.packages_panel`).
+        controls: Holds `on_package_select`, wired later by `attach_handlers`.
+
+    Returns:
+        The rendered `Component` to drop into the layout.
+    """
+    return Renderer().render(
+        lambda: ft.memo(PackagesPanel)(
+            lambda: state,
+            lambda idx: controls.on_package_select and controls.on_package_select(idx),
+        )
     )
 
 

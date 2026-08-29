@@ -41,10 +41,10 @@ tests/handlers/* + tests/ui/test_dialogs.py mostly rewritten — ~150 of 776 tes
 1. ✅ **DONE** — Upgrade flet — see Upgrade hazards below. Verify app still runs. Value even
     standalone (6.7× diffing, smarter .update()).
 2. ✅ **DONE** — @ft.observable on AppState. Imperative code keeps working.
-3. ⏸ **PAUSED** — Convert one leaf panel — packages display. _update_package_display() is
-    textbook: rebuild whole .controls list from state.packages every time. That's already
-    declarative thinking with manual plumbing. ~50 lines out, component in.
-    Paused on 2026-08-28 to fix the file editor first — see "Current position" below.
+3. ✅ **DONE** — Convert one leaf panel — packages display. `PackagesPanel` is now an
+    `@ft.component`; `_update_package_display()` no longer builds controls. Landed with
+    **no** components mode and no update scheduler — see "Step 3" below for how, and for
+    the subscription rule that made it possible.
 4. Judge from there. If step 3 doesn't clearly beat the current code, stop — the
     lesson was cheap.
 
@@ -55,8 +55,9 @@ tests/handlers/* + tests/ui/test_dialogs.py mostly rewritten — ~150 of 776 tes
 **Step 1 — Flet upgrade.** Merged to main as `3eca4c8` + `1d01b13`. Flet 0.82.2 → 0.86.5,
 flet-code-editor → 0.86.5, fce-enhanced 0.1.5 → 0.1.6. Details in "Upgrade hazards" below.
 
-**Step 2 — observable AppState.** Branch `feat/observable-appstate` @ `6c510ae`, pushed, **not
-yet merged**. `@ft.observable` on AppState plus three consequences that had to be handled:
+**Step 2 — observable AppState.** Merged to main as `6c510ae` (the `feat/observable-appstate`
+branch was fast-forwarded in and deleted). `@ft.observable` on AppState plus three consequences
+that had to be handled:
 
 - Flet wraps `list`/`dict` fields, so in-place mutation notifies. **Sets are not wrapped** —
   `|=`, `.add()`, `.discard()` are silent. The `dev_packages` handlers now rebind instead.
@@ -70,9 +71,9 @@ yet merged**. `@ft.observable` on AppState plus three consequences that had to b
 12 tests in `tests/core/test_state_observable.py` pin this contract. 774 tests pass, ruff
 clean, manually verified by creating and saving a project.
 
-### Blocked
+### Was blocked — resolved 2026-08-28, merged to main as `e7025be`
 
-**The file editor is broken.** Clicking Edit raises:
+**The file editor was broken.** Clicking Edit raised:
 
 ```text
 AttributeError: 'bool' object has no attribute 'clear'
@@ -104,11 +105,12 @@ Order of work:
    add a way to set a save target without loading from disk, answer the syntax-highlight
    question. Released as 0.2.2, live on PyPI.
 2. ✅ **DONE** — uv-forger migration. `fce-enhanced>=0.2.2`; `create_file_editor_view`
-   and `_handle_editor_keyboard` rewritten against the handle; tests updated. 773 pass,
+   and `_handle_editor_keyboard` rewritten against the handle; tests updated. 774 pass,
    ruff clean. Details below.
-3. ⏳ **NEEDS MANUAL VERIFICATION** — open the editor in the running app and check: initial
-   syntax highlighting (the `editor._code_editor.language` workaround is gone), Cmd+S writing
-   to the user template path, and every forwarded shortcut.
+3. ✅ **DONE** — manually verified in the running app: toolbar buttons, keyboard shortcuts,
+   typing, and Save round-tripping to disk (reopened the file and the edit was there). Took two
+   rounds — see "Migration notes" below for the two silent failure modes that surfaced only
+   under a real client. 774 tests pass.
 4. Then resume step 3.
 
 ### Migration notes (2026-08-28)
@@ -188,6 +190,65 @@ are now handle calls, all synchronous (the handle schedules coroutines via `page
 Rejected alternative, still viable if the above stalls: patch the 0.1.x line — branch from the
 `v0.1.6` tag, rename `self._dirty` → `self._is_dirty` (13 uses), release 0.1.7. Editor works
 again with zero uv-forger changes, but keeps a superseded line alive.
+
+### Step 3 — declarative packages panel (2026-08-28)
+
+`uv_forger/ui/packages_panel.py`: `PackagesPanel` is an `@ft.component` returning the bordered
+package list, rendered straight from state. `_create_package_item()` and the whole
+`.controls = [...]` rebuild are gone; `_update_package_display()` is down to normalizing
+always-dev packages, setting the count label, the preset button, and re-rendering the panel.
+`_on_package_click(e)` became `_on_package_select(idx)`. 779 tests pass, ruff clean, and
+manually verified in the running app on 2026-08-28: row select, Add Packages, Remove,
+Toggle Dev, Clear All, and framework-change repopulation all functional. First try — unlike
+the editor, which took two rounds.
+
+#### The rule that makes it cheap: do not pass the observable
+
+The migration note above said hosting a component needs `ft.memo` **and** components mode.
+That is true for a component subscribed to observable state — and the reason is worth
+spelling out, because it decides whether the incremental path is viable at all:
+
+- `Component._subscribe_observable_args` subscribes to any argument that `isinstance(..., Observable)`,
+  and the subscription is **whole-object** — no field-level filtering, no read tracking. Pass
+  `AppState` and the panel goes dirty on every unrelated write: project name, a checkbox, a folder.
+- A dirty component reached by an imperative `page.update()` goes through
+  `before_update()`, which misses the memo, re-renders into fresh control ids, and **does not
+  patch the client** (`component.py:170`). The client keeps sending ids the backend can no
+  longer resolve. Silent.
+- Components mode only removes Flet's *post-event auto-update*
+  (`context.auto_update_enabled()` gates `session.after_event`). It does nothing about the
+  ~30 explicit `self.page.update()` calls this app's handlers make. So for a panel that lives
+  in the always-on main window, components mode is not a fix — and turning it on globally
+  would mean auditing every handler for an explicit update.
+
+So the panel takes a **getter**, `lambda: state`, not `state`. A plain callable is not
+`Observable`, nothing subscribes, the component never goes dirty, and every `page.update()`
+anywhere in the app takes the memo-skip path. Invalidation stays explicit:
+`controls.packages_panel.update()` — the one path that re-renders *and* patches — called at the
+end of `_update_package_display()`, after `page.update()`.
+
+Net: `ft.memo` yes, components mode no, update scheduler no.
+
+#### Other mechanics
+
+- `render_packages_panel(state, controls)` in `components.py` does the `Renderer().render(...)`
+  + `ft.memo` wrapping; extracted so the invariants are testable
+  (`tests/ui/test_packages_panel.py`, 3 tests).
+- The panel is built before handlers exist, so clicks dispatch through
+  `controls.on_package_select`, a slot `attach_handlers()` fills in.
+- `page.update()` **before** `packages_panel.update()`, not after: the memo-skip path leaves
+  `_b is last_b`, so the later component patch is the only thing the client sees change.
+- `controls.packages_container` is gone; six test mocks and three assertions were updated.
+
+#### Verdict on step 4
+
+Genuinely better, but not by much. ~55 lines of control-building replaced by ~50 lines of
+component, so the win is in *where* the code is, not how much: rendering is one pure function
+of state, and selection highlighting stopped being a manual per-item branch. Against that,
+hosting cost is real and permanent — a getter instead of the observable, a memo wrapper, an
+explicit `.update()`, and a comment block explaining why, none of which a fully declarative app
+would need. The pattern is now proven and mechanical, so the folders display (the real prize,
+1112 lines, 18 `.update()` calls) is worth doing next; a full port still is not.
 
 ### Dependency state
 

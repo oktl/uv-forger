@@ -108,6 +108,9 @@ def attach_handlers(page: ft.Page, state: AppState) -> None:
     controls.clear_folders_button.on_click = wrap_async(handlers.on_clear_folders)
 
     # --- Package Management Handlers ---
+    # PackagesPanel is built before handlers exist, so it dispatches clicks
+    # through this slot on Controls.
+    controls.on_package_select = handlers._on_package_select
     controls.add_package_button.on_click = wrap_async(handlers.on_add_package)
     controls.remove_package_button.on_click = wrap_async(handlers.on_remove_package)
     controls.clear_packages_button.on_click = wrap_async(handlers.on_clear_packages)

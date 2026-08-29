@@ -97,7 +97,7 @@ class MockControls:
         self.app_subfolders_label = MockText()
         self.subfolders_container = MockContainer()
         self.packages_label = MockText()
-        self.packages_container = MockContainer()
+        self.packages_panel = Mock()
         self.add_package_button = MockControl()
         self.remove_package_button = MockControl()
         self.clear_packages_button = MockControl()
@@ -1562,37 +1562,68 @@ async def test_reset_clears_both_checkbox_labels(mock_handlers):
 
 
 def test_update_package_display_empty(mock_handlers):
-    """_update_package_display renders a 'No packages' placeholder when list is empty."""
+    """_update_package_display counts an empty list and re-renders the panel."""
     handlers, page, controls, state = mock_handlers
 
     state.packages = []
     handlers._update_package_display()
 
-    assert len(controls.packages_container.content.controls) == 1
     assert controls.packages_label.value == "Packages: 0"
+    controls.packages_panel.update.assert_called_once()
 
 
 def test_update_package_display_with_packages(mock_handlers):
-    """_update_package_display renders all packages as containers."""
+    """_update_package_display counts packages and re-renders the panel."""
     handlers, page, controls, state = mock_handlers
 
     state.packages = ["flet", "requests", "httpx"]
     handlers._update_package_display()
 
-    assert len(controls.packages_container.content.controls) == 3
     assert controls.packages_label.value == "Packages: 3"
+    controls.packages_panel.update.assert_called_once()
 
 
-def test_on_package_click_sets_selection(mock_handlers):
-    """Clicking a package item selects it in state."""
+def test_packages_panel_renders_rows_from_state():
+    """PackagesPanel builds one row per package, or a placeholder when empty."""
+    from uv_forger.core.state import AppState
+    from uv_forger.ui.packages_panel import PackagesPanel
+
+    render = PackagesPanel.__wrapped__  # the component body, no renderer needed
+
+    state = AppState()
+    assert len(render(lambda: state, lambda _idx: None).content.controls) == 1  # placeholder
+
+    state.packages = ["flet", "requests", "httpx"]
+    state.dev_packages = {"httpx"}
+    state.auto_packages = ["flet"]
+    state.selected_package_idx = 1
+    rows = render(lambda: state, lambda _idx: None).content.controls
+    assert len(rows) == 3
+    assert rows[1].bgcolor is not None  # selected row is highlighted
+    assert [t.value for t in rows[2].content.controls] == ["httpx", "dev"]
+    assert [t.value for t in rows[0].content.controls] == ["flet", "auto"]
+
+
+def test_packages_panel_row_click_dispatches_index():
+    """Clicking a row calls on_select with that row's index."""
+    from uv_forger.core.state import AppState
+    from uv_forger.ui.packages_panel import PackagesPanel
+
+    state = AppState()
+    state.packages = ["flet", "requests"]
+    clicked = []
+    rows = PackagesPanel.__wrapped__(lambda: state, clicked.append).content.controls
+    rows[1].on_click(Mock())
+
+    assert clicked == [1]
+
+
+def test_on_package_select_sets_selection(mock_handlers):
+    """Selecting a package records its index in state."""
     handlers, page, controls, state = mock_handlers
 
     state.packages = ["flet", "requests"]
-    handlers._update_package_display()
-
-    mock_event = Mock()
-    mock_event.control.data = {"idx": 1, "name": "requests"}
-    handlers._on_package_click(mock_event)
+    handlers._on_package_select(1)
 
     assert state.selected_package_idx == 1
 

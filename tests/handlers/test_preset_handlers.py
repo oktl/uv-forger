@@ -62,7 +62,7 @@ class MockControls:
         self.progress_step_text = Mock(visible=False, value="")
         self.app_subfolders_label = Mock(value="App Subfolders:")
         self.packages_label = Mock(value="Packages: 0")
-        self.packages_container = Mock(content=Mock(controls=[]))
+        self.packages_panel = Mock()
         self.subfolders_container = Mock(content=Mock(controls=[]))
         self.metadata_checkbox = Mock(value=False, label_style=None)
         self.metadata_summary = Mock(value="")

@@ -4,7 +4,6 @@ import flet as ft
 
 from uv_forger.core.constants import ALWAYS_DEV_PACKAGES
 from uv_forger.ui.dialogs import create_add_packages_dialog, create_confirm_dialog
-from uv_forger.ui.ui_config import UIConfig
 
 
 class PackageHandlersMixin:
@@ -13,91 +12,31 @@ class PackageHandlersMixin:
     Expects HandlerBase helpers available via self.
     """
 
-    def _create_package_item(self, pkg: str, idx: int) -> ft.Container:
-        """Create a clickable package item container.
-
-        Auto-derived packages (from framework/project type maps) show a muted
-        'auto' badge on the right to distinguish them from manually added ones.
-
-        Args:
-            pkg: Package name to display.
-            idx: Index of the package in the list (used for selection tracking).
-
-        Returns:
-            Configured Container with click handler and selection highlighting.
-        """
-        is_selected = self.state.selected_package_idx == idx
-        is_auto = pkg in self.state.auto_packages
-        is_dev = pkg in self.state.dev_packages
-
-        row_controls: list[ft.Control] = [
-            ft.Text(
-                pkg,
-                size=UIConfig.TEXT_SIZE_SMALL,
-                font_family="monospace",
-                expand=True,
-            )
-        ]
-        if is_dev:
-            row_controls.append(
-                ft.Text("dev", size=10, color=ft.Colors.AMBER_400, italic=True)
-            )
-        if is_auto:
-            row_controls.append(
-                ft.Text("auto", size=10, color=ft.Colors.GREY_500, italic=True)
-            )
-
-        return ft.Container(
-            content=ft.Row(row_controls, spacing=4),
-            data={"idx": idx, "name": pkg},
-            bgcolor=UIConfig.SELECTED_ITEM_BGCOLOR if is_selected else None,
-            border=(
-                ft.Border.all(
-                    UIConfig.BORDER_WIDTH_DEFAULT, UIConfig.SELECTED_ITEM_BORDER_COLOR
-                )
-                if is_selected
-                else None
-            ),
-            on_click=self._on_package_click,
-            padding=UIConfig.FOLDER_ITEM_PADDING,
-            border_radius=2,
-            margin=0,
-        )
-
     def _update_package_display(self) -> None:
-        """Update the packages container with the current package list."""
+        """Refresh the packages label and re-render the packages panel.
+
+        The list itself is rendered declaratively by
+        :func:`uv_forger.ui.packages_panel.PackagesPanel` straight from state;
+        this only normalizes always-dev packages, updates the surrounding
+        imperative controls, and tells the component to re-render.
+        """
         # Catch-all: ensure always-dev packages are marked regardless of entry path
         self.state.dev_packages = self.state.dev_packages | (
             ALWAYS_DEV_PACKAGES & set(self.state.packages)
         )
-        if self.state.packages:
-            package_controls = [
-                self._create_package_item(pkg, idx)
-                for idx, pkg in enumerate(self.state.packages)
-            ]
-        else:
-            package_controls = [
-                ft.Container(
-                    content=ft.Text(
-                        "No packages",
-                        size=UIConfig.TEXT_SIZE_SMALL,
-                        color=ft.Colors.GREY_600,
-                        italic=True,
-                    ),
-                    padding=ft.Padding(left=4, top=4, right=0, bottom=0),
-                )
-            ]
-        self.controls.packages_container.content.controls = package_controls
-        count = len(self.state.packages)
-        self.controls.packages_label.value = f"Packages: {count}"
+        self.controls.packages_label.value = f"Packages: {len(self.state.packages)}"
         self._update_preset_button_state()
         self.page.update()
+        # Must come after page.update(): Component.update() is the only path
+        # that re-renders and patches the client.
+        self.controls.packages_panel.update()
 
-    def _on_package_click(self, e: ft.ControlEvent) -> None:
-        """Handle click on a package item to select it."""
-        self.state.selected_package_idx = e.control.data["idx"]
-        pkg_name = e.control.data["name"]
-        self._set_status(f"Selected package: {pkg_name}", "info", update=False)
+    def _on_package_select(self, idx: int) -> None:
+        """Handle a package row click from PackagesPanel."""
+        self.state.selected_package_idx = idx
+        self._set_status(
+            f"Selected package: {self.state.packages[idx]}", "info", update=False
+        )
         self._update_package_display()
 
     async def on_add_package(self, e: ft.ControlEvent) -> None:

@@ -74,7 +74,7 @@ class MockControls:
         self.app_subfolders_label = MockText()
         self.subfolders_container = MockContainer()
         self.packages_label = MockText()
-        self.packages_container = MockContainer()
+        self.packages_panel = Mock()
         self.add_package_button = MockControl()
         self.remove_package_button = MockControl()
         self.clear_packages_button = MockControl()
