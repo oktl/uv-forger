@@ -55,7 +55,6 @@ from __future__ import annotations
 import ast
 import asyncio
 import collections.abc
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 import flet as ft
@@ -2871,65 +2870,43 @@ def create_file_editor_view(
     Returns:
         Configured ft.View containing an EnhancedCodeEditor.
     """
-    import asyncio
-    from contextlib import suppress
-
-    import flet_code_editor as fce
-    from fce_enhanced import EnhancedCodeEditor
+    from fce_enhanced import EditorHandle, EnhancedCodeEditor
     from fce_enhanced.languages import language_for_path
+    from flet.components.component import Renderer
 
-    target_lang = language_for_path(filename)
-
-    # register_keyboard_shortcuts=False so the app's keyboard handler
-    # can forward shortcuts to the editor (and handle Escape to close).
-    editor = EnhancedCodeEditor(
-        value=initial_content,
-        language=target_lang,
-        register_keyboard_shortcuts=False,
-        expand=True,
+    # EnhancedCodeEditor is an @ft.component, so it can only be called inside a
+    # renderer. The app is still imperative, so render this one subtree on its
+    # own Renderer and drop the resulting control into the View.
+    # ponytail: standalone Renderer instead of page.render(), which would take
+    # over views[0] and put the whole session in components mode.
+    #
+    # ft.memo is REQUIRED here, not an optimization. Every imperative
+    # page.update() (including Flet's post-event auto-update, which only
+    # components mode turns off) runs Component.before_update(), which
+    # re-renders the body into brand-new controls with brand-new ids without
+    # patching the client. The client keeps sending the ids it was given, the
+    # backend can no longer resolve them, and every click inside the editor is
+    # silently dropped ("Control with ID N not found"). Memoized, an unchanged
+    # parent update reuses the previous render, so ids stay stable; state
+    # changes still re-render through Component.update(), which does patch.
+    handle = EditorHandle()
+    editor = Renderer().render(
+        lambda: ft.memo(EnhancedCodeEditor)(
+            value=initial_content,
+            language=language_for_path(filename),
+            # register_keyboard_shortcuts=False so the app's keyboard handler
+            # can forward shortcuts to the editor (and handle Escape to close).
+            register_keyboard_shortcuts=False,
+            # Seeds the save target (and title bar) without reading from disk,
+            # so built-in Save (Cmd+S) writes to the user template location.
+            save_path=user_template_path or filename,
+            handle=handle,
+            expand=True,
+        )
     )
 
-    # The underlying fce.CodeEditor doesn't apply syntax highlighting on its
-    # initial render — it requires a language toggle (set dummy → flush → set
-    # real) to trigger a full re-render with colors.  Hook into did_mount to
-    # perform this toggle once the control is in the widget tree.
-    _original_did_mount = editor.did_mount
-
-    def _did_mount_with_highlight():
-        _original_did_mount()
-        dummy_lang = (
-            fce.CodeLanguage.PLAINTEXT
-            if target_lang != fce.CodeLanguage.PLAINTEXT
-            else fce.CodeLanguage.PYTHON
-        )
-        editor._code_editor.language = dummy_lang
-        with suppress(RuntimeError):
-            editor._code_editor.update()
-
-        async def _apply_real_lang():
-            await asyncio.sleep(0.05)
-            editor._code_editor.language = target_lang
-            with suppress(RuntimeError):
-                editor.update()
-
-        asyncio.create_task(_apply_real_lang())
-
-    editor.did_mount = _did_mount_with_highlight
-
-    # Set _current_path so the title bar persists through edits (dirty state)
-    # and so built-in Save (Cmd+S) writes to the correct location.
-    editor._current_path = user_template_path or filename
-    if user_template_path:
-        try:
-            display = "~/" + str(Path(user_template_path).relative_to(Path.home()))
-        except ValueError:
-            display = user_template_path
-        editor._title_bar.value = display
-    else:
-        editor._title_bar.value = filename
-
     def handle_save(_):
-        on_save(editor.value)
+        on_save(handle.value)
 
     save_btn = ft.TextButton(
         "Save",
@@ -2983,8 +2960,10 @@ def create_file_editor_view(
         horizontal_alignment=ft.CrossAxisAlignment.CENTER,
         padding=0,
     )
-    # Expose the editor on the view so handlers can access it for keyboard shortcuts.
-    view.editor = editor
+    # Expose the handle on the view so handlers can drive the editor
+    # (keyboard shortcuts) without reaching into its internals.
+    view.editor_handle = handle
+    view.editor_save_path = user_template_path or filename
     return view
 
 

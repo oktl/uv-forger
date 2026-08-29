@@ -219,7 +219,7 @@ wheels = [
 
 [[package]]
 name = "fce-enhanced"
-version = "0.1.6"
+version = "0.2.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "flet" },
@@ -227,9 +227,9 @@ dependencies = [
     { name = "loguru" },
     { name = "ruff" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/2b/9d/5b02a271cb671fca8df10dc23b81c7496f1d9b803a61e9d3b476177df5d6/fce_enhanced-0.1.6.tar.gz", hash = "sha256:35f7b9e02bd1fce05c5298c1a95e1a497e24f70e61a1233043397677218a4120", size = 23013, upload-time = "2026-03-17T20:17:06.86Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/5a/06/640c51ac64a1017670f9dbdad8db4dd96a9b374b1a68c49ab6456e259197/fce_enhanced-0.2.2.tar.gz", hash = "sha256:776ab69df74ee057ee21547b8927a9b2f05564fa057b452b7337960ccbbe34e6", size = 23540, upload-time = "2026-08-29T03:39:14.746Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/57/2c/7a7e3985e537de0643da8357dcafbd63ce534c30e3e89b5010fe463ba3fe/fce_enhanced-0.1.6-py3-none-any.whl", hash = "sha256:5f9cc64a090d3d9e61869e432443803325bf3e1cfcf620fa4f6f3096a9163c54", size = 26968, upload-time = "2026-03-17T20:17:05.708Z" },
+    { url = "https://files.pythonhosted.org/packages/7f/20/2831fe31e1e2419c4f27fc2375ecc9d7571a324d9dd9b39cec2ff6f876dc/fce_enhanced-0.2.2-py3-none-any.whl", hash = "sha256:652a2d1988edb897732ebde8ff40b31d5478afb001e05b1c9cac5bf7cd3a69a0", size = 27110, upload-time = "2026-08-29T03:39:13.669Z" },
 ]
 
 [[package]]
@@ -939,7 +939,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "fce-enhanced", specifier = ">=0.1.6" },
+    { name = "fce-enhanced", specifier = ">=0.2.2" },
     { name = "flet", specifier = "==0.86.5" },
     { name = "flet-code-editor", specifier = "==0.86.5" },
     { name = "httpx", specifier = ">=0.28.1" },

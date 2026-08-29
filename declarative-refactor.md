@@ -100,16 +100,90 @@ Full spec: `HANDOFF-editor-handle.md` in `~/Projects/flet-fce-enhanced`.
 
 Order of work:
 
-1. fce-enhanced: extend `EditorHandle` with the missing actions + `search_open`, add a way to
-   set a save target without loading from disk, answer the syntax-highlight question. Release
-   0.2.2.
-2. uv-forger: bump to `fce-enhanced>=0.2.2`; rewrite `create_file_editor_view`
-   (`ui/dialogs.py:2843`, ~70 lines) and `_handle_editor_keyboard`
-   (`handlers/build_handlers.py:655`, ~50 lines) against the handle; fix 8 assertions across 4
-   tests in `tests/handlers/test_file_editor.py` that poke `_current_path` / `_title_bar`.
-3. Manually verify initial syntax highlighting — the current workaround (poking
-   `editor._code_editor.language`) cannot come along.
+1. ✅ **DONE** — fce-enhanced: extend `EditorHandle` with the missing actions + `search_open`,
+   add a way to set a save target without loading from disk, answer the syntax-highlight
+   question. Released as 0.2.2, live on PyPI.
+2. ✅ **DONE** — uv-forger migration. `fce-enhanced>=0.2.2`; `create_file_editor_view`
+   and `_handle_editor_keyboard` rewritten against the handle; tests updated. 773 pass,
+   ruff clean. Details below.
+3. ⏳ **NEEDS MANUAL VERIFICATION** — open the editor in the running app and check: initial
+   syntax highlighting (the `editor._code_editor.language` workaround is gone), Cmd+S writing
+   to the user template path, and every forwarded shortcut.
 4. Then resume step 3.
+
+### Migration notes (2026-08-28)
+
+The one thing the handoff spec did not cover: `EnhancedCodeEditor` is now an `@ft.component`,
+so **calling it raises** `RuntimeError: No current renderer is set` outside a render pass. The
+app is still imperative, so `create_file_editor_view` renders that one subtree on its own
+`Renderer()`:
+
+```python
+handle = EditorHandle()
+editor = Renderer().render(lambda: EnhancedCodeEditor(..., handle=handle))
+```
+
+`page.render()` was rejected — it replaces `views[0].controls` and flips the whole session into
+components mode, which disables Flet's auto-update everywhere else.
+
+Component state changes flush through the session's deferred-update scheduler, which an
+imperative app never starts, so `_edit_file` calls `page.session.start_updates_scheduler()`
+after pushing the view (idempotent). Components mode is deliberately *not* enabled — auto-update
+stays on for the rest of the app.
+
+**`ft.memo` is load-bearing.** First manual test: keyboard shortcuts worked, no toolbar button
+did, and typing appeared to work but never reached the backend. Flet debug log:
+
+```text
+flet DEBUG Control with ID 2090 not found.
+```
+
+2090 was the `CodeEditor`; by the end of the session the live subtree was numbered 3268+. Every
+imperative `page.update()` — including Flet's post-event auto-update, which fires after
+*unrelated* events such as a snackbar dismissing — runs `Component.before_update()`, which
+re-renders the body into brand-new controls with brand-new ids and never patches the client.
+The client keeps sending the ids it was given, the backend can no longer resolve them, and
+every event from inside the editor is dropped silently. Keyboard shortcuts were unaffected
+because they arrive on `page.on_keyboard_event`, not on a control inside the component.
+
+`ft.memo(EnhancedCodeEditor)(...)` makes an unchanged parent update reuse the previous render
+(`_state.last_b`), so ids stay stable; state changes still re-render via `Component.update()`,
+which does patch the client. This is the general rule for hosting any component inside an
+imperative Flet app, not something specific to the editor. Pinned by
+`test_editor_component_is_memoized`.
+
+Note the same bug silently broke saving: with `on_change` dropped, the component's `r.text`
+never advanced past the initial content, so `handle.value` would have written stale text.
+
+**Components mode is also load-bearing** — memo alone was not enough. Second manual test: clicks
+now dispatched, but a toolbar button raised
+
+```text
+CodeEditor(475) Control must be added to the page first
+```
+
+Mechanism, from `object_patch.py:605` and the reconciliation comment at 1160. When a parent
+update (non-frozen) reaches a component whose `_b` was just swapped for a freshly rendered one,
+`src is not dst` and there is no explicit key, so **the whole subtree diff is skipped** — the new
+controls are never sent to the client and never get a `_parent`. `r.editor.current` then points
+at an orphan, and the next `ctrl.focus()` dies on the `.page` property. The race is tight and
+lands exactly on a click: the handler marks the component dirty and queues
+`Component.update()`, then Flet's post-event auto-update fires a `page.update()` *first*, whose
+`before_update()` misses the memo (dirty) and burns the render.
+
+`ft.context.enable_components_mode()` while the editor view is open removes auto-update — its
+only effect — so component state changes reach the client through `Component.update()` alone,
+which patches with `frozen=True` and takes the reconciliation path that reindexes and reparents.
+`close_editor()` disables it again so the imperative main window keeps auto-update.
+
+The two fixes cover different paths and are both needed: memo keeps an *unrelated* explicit
+`page.update()` from swapping a clean component's body; components mode keeps auto-update from
+racing a *dirty* one.
+
+Other changes: `save_path=user_template_path or filename` replaces the `_current_path` /
+`_title_bar` pokes and the `did_mount` highlight hack; `view.editor` → `view.editor_handle`
+(plus `view.editor_save_path` for tests); all 14 private calls in `_handle_editor_keyboard`
+are now handle calls, all synchronous (the handle schedules coroutines via `page.run_task`).
 
 Rejected alternative, still viable if the above stalls: patch the 0.1.x line — branch from the
 `v0.1.6` tag, rename `self._dirty` → `self._is_dirty` (13 uses), release 0.1.7. Editor works
@@ -118,7 +192,7 @@ again with zero uv-forger changes, but keeps a superseded line alive.
 ### Dependency state
 
 `flet==0.86.5`, `flet-code-editor==0.86.5` (exact pins, must move together),
-`fce-enhanced>=0.1.6` (**not** yet moved to 0.2.x).
+`fce-enhanced>=0.2.2` (moved 2026-08-28 — also drops the 0.1.6 `_dirty` collision).
 
 Folders display (folder_handlers.py, 1112 lines, 18 .update() calls) is the real prize
 but also the hairiest — recursive tree + selection paths. Do it third, not first.

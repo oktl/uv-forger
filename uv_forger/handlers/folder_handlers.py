@@ -908,6 +908,8 @@ class FolderHandlersMixin:
         def close_editor():
             if len(self.page.views) > 1:
                 self.page.views.pop()
+            # Hand auto-update back to the imperative main window.
+            ft.context.disable_components_mode()
             self.state.active_dialog = None
             self.page.update()
 
@@ -945,6 +947,20 @@ class FolderHandlersMixin:
 
         self.page.editor_view_ref = view
         self.page.views.append(view)
+        # The editor is a Flet component; its state updates flush through the
+        # session's deferred-update scheduler, which an imperative app never
+        # starts. Idempotent — returns early if already running.
+        self.page.session.start_updates_scheduler()
+        # Components mode's only effect is switching off Flet's post-event
+        # auto-update, and that is required here. Auto-update runs a full
+        # page.update() after every event, which re-renders the component
+        # mid-flight: a parent (non-frozen) patch skips a swapped component
+        # body entirely (object_patch.py:605), so the new controls are never
+        # sent to the client and never get a parent — the next ctrl.focus()
+        # then dies with "Control must be added to the page first". Only
+        # Component.update() patches a component correctly. Turned back off in
+        # close_editor() so the main window keeps its auto-update.
+        ft.context.enable_components_mode()
         self.state.active_dialog = close_editor
         self.page.update()
 

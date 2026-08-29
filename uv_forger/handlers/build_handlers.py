@@ -657,21 +657,21 @@ class BuildHandlersMixin:
         editor_view = getattr(self.page, "editor_view_ref", None)
         if not editor_view:
             return
-        editor = getattr(editor_view, "editor", None)
-        if not editor:
+        handle = getattr(editor_view, "editor_handle", None)
+        if not handle:
             return
 
         # Escape: close search bar if open, otherwise close editor view
         if e.key == "Escape":
-            if hasattr(editor, "_search_bar") and editor._search_bar.is_open:
-                editor._close_search()
+            if handle.search_open:
+                handle.close_search()
             elif self.state.active_dialog:
                 self.state.active_dialog()
             return
 
         # F1: show help
         if e.key == "F1":
-            editor._show_help()
+            handle.show_help()
             return
 
         # Cmd/Ctrl shortcuts
@@ -679,27 +679,27 @@ class BuildHandlersMixin:
             return
         key = e.key.upper()
         if key == "F" and not e.shift and not e.alt:
-            await editor._open_search(with_replace=False)
+            handle.open_search(with_replace=False)
         elif (key == "F" and e.alt) or (key == "H" and not e.shift):
-            await editor._open_search(with_replace=True)
+            handle.open_search(with_replace=True)
         elif key == "S" and not e.shift:
-            await editor._do_save()
+            handle.save()
         elif key == "S" and e.shift:
-            await editor._do_save_as()
+            handle.save_as()
         elif key == "D":
-            editor._toggle_diff_pane()
+            handle.toggle_diff()
         elif key == "G":
-            await editor._handle_goto_line(None)
+            handle.goto_line()
         elif key == "L" and not e.shift:
-            editor._toggle_read_only()
+            handle.toggle_read_only()
         elif key == "L" and e.shift:
-            editor._handle_language_click(None)
+            handle.choose_language()
         elif key == "P" and e.shift:
-            await editor._open_command_palette()
+            handle.command_palette()
         elif key in ("=", "+"):
-            editor._change_font_size(1)
+            handle.change_font_size(1)
         elif key in ("-", "_"):
-            editor._change_font_size(-1)
+            handle.change_font_size(-1)
 
     async def on_exit(self, e: ft.ControlEvent) -> None:
         """Handle Exit button click — shows confirmation dialog first."""

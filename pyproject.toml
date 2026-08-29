@@ -23,7 +23,7 @@ classifiers = [
     "Topic :: Software Development :: Code Generators",
 ]
 dependencies = [
-    "fce-enhanced>=0.1.6",
+    "fce-enhanced>=0.2.2",
     "flet==0.86.5",
     "flet-code-editor==0.86.5",
     "httpx>=0.28.1",

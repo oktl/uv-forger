@@ -380,7 +380,9 @@ class TestCreateFileEditorView:
         assert isinstance(view, ft.View)
         assert view.route == "/editor"
 
-    def test_view_has_editor_attribute(self):
+    def test_view_exposes_editor_handle(self):
+        from fce_enhanced import EditorHandle
+
         from uv_forger.ui.dialogs import create_file_editor_view
 
         view = create_file_editor_view(
@@ -391,8 +393,7 @@ class TestCreateFileEditorView:
             on_close=lambda: None,
             is_dark_mode=True,
         )
-        assert hasattr(view, "editor")
-        assert view.editor._current_path == "main.py"
+        assert isinstance(view.editor_handle, EditorHandle)
 
     def test_bare_filename_without_user_template_path(self):
         from uv_forger.ui.dialogs import create_file_editor_view
@@ -405,10 +406,9 @@ class TestCreateFileEditorView:
             on_close=lambda: None,
             is_dark_mode=True,
         )
-        assert view.editor._current_path == "main.py"
-        assert view.editor._title_bar.value == "main.py"
+        assert view.editor_save_path == "main.py"
 
-    def test_user_template_path_sets_current_path(self):
+    def test_user_template_path_is_the_save_target(self):
         from uv_forger.ui.dialogs import create_file_editor_view
 
         user_path = str(
@@ -424,26 +424,7 @@ class TestCreateFileEditorView:
             is_dark_mode=True,
             user_template_path=user_path,
         )
-        assert view.editor._current_path == user_path
-
-    def test_user_template_path_sets_tilde_display(self):
-        from uv_forger.ui.dialogs import create_file_editor_view
-
-        user_path = str(
-            Path.home()
-            / "Library/Application Support/UV Forger/boilerplate/flet/main.py"
-        )
-        view = create_file_editor_view(
-            filename="main.py",
-            initial_content="# hello",
-            on_save=lambda c: None,
-            on_reset=lambda: None,
-            on_close=lambda: None,
-            is_dark_mode=True,
-            user_template_path=user_path,
-        )
-        assert view.editor._title_bar.value.startswith("~/")
-        assert "main.py" in view.editor._title_bar.value
+        assert view.editor_save_path == user_path
 
     def test_user_template_path_none_falls_back_to_filename(self):
         from uv_forger.ui.dialogs import create_file_editor_view
@@ -457,8 +438,7 @@ class TestCreateFileEditorView:
             is_dark_mode=False,
             user_template_path=None,
         )
-        assert view.editor._current_path == "state.py"
-        assert view.editor._title_bar.value == "state.py"
+        assert view.editor_save_path == "state.py"
 
     def test_editor_has_keyboard_shortcuts_disabled(self):
         """Editor should have register_keyboard_shortcuts=False so the app handles them."""
@@ -472,5 +452,24 @@ class TestCreateFileEditorView:
             on_close=lambda: None,
             is_dark_mode=True,
         )
-        # The editor should have expand=True for proper layout in the View
-        assert view.editor.expand is True
+        # Component kwargs are frozen at render time
+        editor = view.controls[1].content.controls[0]
+        assert editor.kwargs["register_keyboard_shortcuts"] is False
+        assert editor.kwargs["expand"] is True
+
+    def test_editor_component_is_memoized(self):
+        """Without memo, any imperative page.update() re-renders the editor into
+        controls with new ids the client was never told about, and every click
+        inside the editor is silently dropped."""
+        from uv_forger.ui.dialogs import create_file_editor_view
+
+        view = create_file_editor_view(
+            filename="main.py",
+            initial_content="# hello",
+            on_save=lambda c: None,
+            on_reset=lambda: None,
+            on_close=lambda: None,
+            is_dark_mode=True,
+        )
+        editor = view.controls[1].content.controls[0]
+        assert editor.memoized is True
