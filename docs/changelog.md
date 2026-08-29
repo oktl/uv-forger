@@ -5,6 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0]
+
+Flet 0.86.5 upgrade and a partial move to Flet's declarative (`@ft.component`) style, plus a
+round of dead-code removal. No user-facing feature changes — the UI behaves as it did in 0.4.0.
+
+### Changed
+
+- Flet 0.82.2 → 0.86.5, with `flet-code-editor` in lockstep (it pins Flet exactly) and
+  `fce-enhanced` → 0.2.2. Brings 3.2–6.7× faster control diffing and smarter `.update()`
+- `AppState` is now `@ft.observable`; imperative code keeps working. Three consequences needed
+  handling and are pinned by 12 new tests: sets are not wrapped by Flet (so `dev_packages`
+  rebinds instead of mutating), `dataclasses.asdict()` raises on the wrappers (added
+  `models.to_plain()` at the preset/history boundary), and `reset()` was assigning a throwaway
+  instance's collections
+- Packages display converted to a declarative component (`ui/packages_panel.py`) — the imperative
+  rebuild of the container's `.controls` list is gone, and rendering is one pure function of state
+- Project structure display converted to a declarative component (`ui/folders_panel.py`) — root
+  files, folders, nested subfolders, selection, override indicator, and both context menus.
+  Replaces `_create_item_container` (88 lines) and `_process_folder_recursive`
+- `get_canonical_file_path()` moved from `handlers/folder_handlers.py` to `core/models.py`; it is
+  a pure function over folder dicts and the UI layer needs it
+- Refactoring pass across `core/` and `handlers/`: duplication removed, helpers merged, dead code
+  deleted (~700 lines net)
+- CI: `actions/checkout` → v5, `astral-sh/setup-uv` → v7
+- 781 tests, up from 776
+
+### Fixed
+
+- File editor, broken by the Flet upgrade. `fce-enhanced` 0.1.6 set `self._dirty = False` on an
+  `ft.Column` subclass, colliding with Flet's reserved `BaseControl._dirty` dict (new in 0.83)
+  and blowing up the next `page.update()` on a mounted tree. Fixed upstream by extending
+  `EditorHandle`; uv-forger now drives the editor through the public handle instead of 15
+  private members
+- Pinned `pygments < 2.20`, which was breaking code blocks in the docs site
+
 ## [0.4.0]
 
 ### Added

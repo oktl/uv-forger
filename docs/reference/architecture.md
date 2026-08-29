@@ -14,8 +14,8 @@ Core logic with no UI dependencies.
 | Module                  | Role                                                  |
 | ----------------------- | ----------------------------------------------------- |
 | **`constants.py`**      | Single source of truth: versions, frameworks, package maps, paths |
-| **`state.py`**          | `AppState` dataclass — all mutable state              |
-| **`models.py`**         | Data models: `FolderSpec`, `ProjectConfig`, `BuildResult` |
+| **`state.py`**          | `AppState` — `@ft.observable` dataclass, all mutable state |
+| **`models.py`**         | Data models: `FolderSpec`, `ProjectConfig`, `BuildResult`; `get_canonical_file_path()` |
 | **`validator.py`**      | Project name, folder name, and path validation        |
 | **`template_loader.py`**| JSON template loading with fallback chain             |
 | **`template_merger.py`**| Merges framework + project type templates recursively |
@@ -54,6 +54,8 @@ Flet controls, dialogs, and theming.
 | Module                | Role                                                    |
 | --------------------- | ------------------------------------------------------- |
 | **`components.py`**   | `Controls` class + `build_main_view()` — appbar overflow menu |
+| **`packages_panel.py`** | `PackagesPanel` — declarative package list (`@ft.component`) |
+| **`folders_panel.py`**  | `FoldersPanel` — declarative project structure tree (`@ft.component`) |
 | **`dialogs.py`**      | App-specific dialogs: confirm, settings, build summary, history, presets |
 | **`content_dialogs.py`** | Reusable content dialogs: help, about, file edit, preview |
 | **`dialog_data.py`**  | Framework/project type categories — dialog display metadata |
@@ -97,7 +99,35 @@ When both a UI framework and project type are selected, both templates are loade
 
 ### Imported Tree Structures
 
-When a user imports a tree structure (via the Import Tree button), `parse_tree_text_full()` in `tree_parser.py` returns a `TreeParseResult` containing both folders and root-level files. Root files are stored in `state.root_files` (separate from `state.folders`) and use navigation paths like `["root_files", idx]` for selection and editing. `get_canonical_file_path()` in `folder_handlers.py` resolves these paths for the file override system. During build, `setup_imported_structure()` creates folders at the project root (no `app/` wrapper) and writes root files — UV-generated files are only skipped if the user hasn't edited them.
+When a user imports a tree structure (via the Import Tree button), `parse_tree_text_full()` in `tree_parser.py` returns a `TreeParseResult` containing both folders and root-level files. Root files are stored in `state.root_files` (separate from `state.folders`) and use navigation paths like `["root_files", idx]` for selection and editing. `get_canonical_file_path()` in `core/models.py` resolves these paths for the file override system. During build, `setup_imported_structure()` creates folders at the project root (no `app/` wrapper) and writes root files — UV-generated files are only skipped if the user hasn't edited them.
+
+### Declarative Panels in an Imperative App
+
+The packages list and the project structure tree are Flet **components**
+(`@ft.component`), rendered from state rather than rebuilt control-by-control. Everything else
+— the main view, every dialog — is still imperative, so each panel is rendered on its own
+`Renderer()` and dropped into the layout by `render_packages_panel()` / `render_folders_panel()`
+in `components.py`.
+
+Mixing the two styles has exactly two rules, and both failure modes are silent:
+
+1. **Pass state as a getter, not as the observable.** Flet subscribes a component to any
+   `Observable` argument, whole-object, with no field-level filtering. Passing `AppState`
+   directly would mark the panel dirty on every unrelated write (a checkbox, the project name),
+   and the next imperative `page.update()` would then re-render it into fresh control ids
+   *without* patching the client — after which every click inside the panel is dropped with no
+   error. So the panels take `lambda: state`.
+2. **`ft.memo` is required, not an optimization.** Same failure mode, triggered by an unrelated
+   `page.update()` reaching a clean component.
+
+Because of rule 1 the panels never go dirty on their own, so invalidation stays explicit:
+handlers call `controls.packages_panel.update()` / `controls.folders_panel.update()` — the only
+path that re-renders *and* patches the client — after `page.update()`. No components mode and no
+update scheduler are needed.
+
+Panels are built before handlers exist, so clicks dispatch through slots that
+`attach_handlers()` fills in later: `controls.on_package_select` for packages, and a
+`FolderPanelCallbacks` dataclass (row select, file menu, folder menu) for the tree.
 
 ### Build Pipeline
 
