@@ -1,6 +1,6 @@
 # UV Forger
 
-**Version 0.4.0**
+**Version 0.5.0**
 
 A desktop application for creating Python projects with UV — the fast Python package manager. Provides template-based folder structures, framework/package installation, git initialization, and Python version selection.
 

@@ -8,7 +8,7 @@ from pathlib import Path
 
 import platformdirs
 
-APP_VERSION = "0.1.0"
+APP_VERSION = "0.5.0"
 
 # Python versions supported by the application
 PYTHON_VERSIONS = ["3.14", "3.13", "3.12", "3.11", "3.10"]
