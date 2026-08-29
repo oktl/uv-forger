@@ -258,7 +258,8 @@ root files, folders, nested subfolders, selection highlight, override pencil, an
 menus — as pure functions over state. `_create_item_container` (88 lines) and
 `_process_folder_recursive` are gone from `folder_handlers.py`; `_update_folder_display()` is
 down to the count label, the preset button, and a panel re-render. 781 tests pass, ruff clean,
-app launches clean. **Interactive click-through unverified** — see "Left to verify".
+and manually verified in the running app on 2026-08-28: selection, both context menus, Add,
+Remove, Import Tree, Clear Folders, and framework-change rebuilds all functional.
 
 Same hosting contract as the packages panel, no new machinery: own `Renderer`, `ft.memo`,
 state as a getter, explicit `controls.folders_panel.update()` after `page.update()`. The
@@ -284,15 +285,6 @@ Test churn: `_create_item_container` / `_process_folder_recursive` / `_on_item_c
 scattered across three handler test files were replaced by 19 tests in
 `tests/ui/test_folders_panel.py` — flattening order, root-file placement, selection, pencil,
 both menus, dispatch, unwired-callback safety, and the two hosting invariants. Net 781 tests.
-
-### Left to verify
-
-Interactive click-through of the folders panel: select a folder and a file (highlight + status
-line + Edit File button enabling), right-click a file for all four actions, right-click a
-folder for Import Folder from Disk, Add Folder/File, Remove, Import Tree (root files above
-folders), Clear Folders, and a framework change that rebuilds the tree. Startup renders clean
-and 781 tests pass, but this panel's failure modes are silent under test.
-
 
 ### Dependency state
 
