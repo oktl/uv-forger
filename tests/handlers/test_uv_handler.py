@@ -133,7 +133,15 @@ class TestUvCommandsWithMocks:
                 call_args = mock_run.call_args
                 cmd = call_args[0][0]
 
-                assert cmd == ["/usr/bin/uv", "init", "--python", "3.14", "."]
+                assert cmd == [
+                    "/usr/bin/uv",
+                    "init",
+                    "--app",
+                    "--no-package",
+                    "--python",
+                    "3.14",
+                    ".",
+                ]
                 assert call_args[1]["cwd"] == project_path
                 assert call_args[1]["check"]
 

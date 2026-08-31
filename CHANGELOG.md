@@ -39,6 +39,12 @@ round of dead-code removal. No user-facing feature changes — the UI behaves as
   `EditorHandle`; uv-forger now drives the editor through the public handle instead of 15
   private members
 - Pinned `pygments < 2.20`, which was breaking code blocks in the docs site
+- `uv sync` failing with `duplicate key` on `[project.scripts]` when the host has uv >= 0.8.
+  Modern `uv init .` scaffolds a packaged app (src/ layout, `uv_build` backend, and a
+  `[project.scripts]` table already present), which then collided with the section
+  `configure_pyproject()` appends. `run_uv_init()` now passes `--app --no-package` to pin
+  the bare-application scaffold (root `main.py`, no build system, no `[project.scripts]`)
+  across uv versions
 
 ## [0.4.0]
 

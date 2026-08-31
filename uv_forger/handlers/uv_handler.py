@@ -54,7 +54,12 @@ def get_uv_path() -> str:
 def run_uv_init(project_path: Path, python_version: str) -> None:
     """Initialize a new UV project with specified Python version.
 
-    Runs 'uv init --python <version> .' in the project directory.
+    Runs 'uv init --app --no-package --python <version> .' in the project
+    directory. The explicit --app --no-package pins the scaffold to a bare
+    application (root main.py, no [build-system], no [project.scripts]);
+    without it, uv >= 0.8 defaults to a packaged src/ layout that already
+    contains [project.scripts], which then collides with the section
+    configure_pyproject() appends.
 
     Args:
         project_path: Path to the project directory.
@@ -65,7 +70,7 @@ def run_uv_init(project_path: Path, python_version: str) -> None:
     """
     uv_path = get_uv_path()
     subprocess.run(
-        [uv_path, "init", "--python", python_version, "."],
+        [uv_path, "init", "--app", "--no-package", "--python", python_version, "."],
         cwd=project_path,
         capture_output=True,
         text=True,
