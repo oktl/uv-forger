@@ -5,6 +5,13 @@ site_author: Tim Lang
 repo_url: https://github.com/oktl/uv-forger
 repo_name: oktl/uv-forger
 
+# CI runs `mkdocs build --strict`, which promotes these warnings to errors.
+validation:
+  links:
+    absolute_links: warn
+    unrecognized_links: warn
+    anchors: warn
+
 theme:
   name: material
   palette:
