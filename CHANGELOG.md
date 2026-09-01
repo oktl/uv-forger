@@ -202,6 +202,9 @@ round of dead-code removal. No user-facing feature changes — the UI behaves as
 - Colour-coded log viewer with clickable source locations
 - Dark and light theme toggle
 
+[0.5.2]: https://github.com/oktl/uv-forger/releases/tag/v0.5.2
+[0.5.1]: https://github.com/oktl/uv-forger/releases/tag/v0.5.1
+[0.5.0]: https://github.com/oktl/uv-forger/releases/tag/v0.5.0
 [0.4.0]: https://github.com/oktl/uv-forger/releases/tag/v0.4.0
 [0.3.5]: https://github.com/oktl/uv-forger/releases/tag/v0.3.5
 [0.3.4]: https://github.com/oktl/uv-forger/releases/tag/v0.3.4

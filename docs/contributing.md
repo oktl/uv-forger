@@ -19,7 +19,7 @@ You'll need Python 3.12+, `uv`, and Git.
 git clone https://github.com/oktl/uv-forger.git
 cd uv-forger
 uv run uv-forger            # Run the app
-uv run pytest               # Run 636+ tests (coverage automatic)
+uv run pytest               # Run 781+ tests (coverage automatic)
 uv run ruff check uv_forger  # Lint
 uv run ruff format uv_forger # Format
 ```
@@ -55,6 +55,20 @@ Add tests for any new functionality in `tests/core/`, `tests/handlers/`, or `tes
 5. Open a PR with a clear description of what changed and why
 
 Small, focused PRs are easier to review. If you're planning something significant, open an issue first so we can discuss the approach.
+
+## Releasing
+
+Two GitHub Actions workflows, run in order. **Never create the tag by hand** — the version bump
+has to land before the tag, or `publish.yml` builds the old version and PyPI rejects it with
+`400 File already exists`.
+
+1. **Update the changelog** — add a `## [x.y.z]` section to `CHANGELOG.md` and `docs/changelog.md`, commit, push to `main`.
+2. **Run the *Release* workflow** — Actions → Release, or `gh workflow run release.yml -f bump=patch` (`patch` | `minor` | `major`). It runs `uv version --bump`, commits `chore: bump version to x.y.z`, and tags `vx.y.z` **on that commit**.
+3. **Cut the release** — `gh release create vx.y.z --generate-notes`. The `release: published` event triggers `publish.yml`, which builds from the tag and uploads to PyPI via trusted publishing. This step is manual because releases created by `GITHUB_TOKEN` don't trigger other workflows.
+4. **Pull locally** — `git pull` to get the bump commit.
+
+`publish.yml` guards against a mismatched tag: it fails the run if the tag doesn't equal
+`uv version --short`.
 
 ## Questions?
 
