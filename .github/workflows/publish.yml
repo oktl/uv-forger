@@ -13,6 +13,11 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: astral-sh/setup-uv@v7
+      - name: Tag must match package version
+        run: |
+          pkg=$(uv version --short)
+          tag="${GITHUB_REF_NAME#v}"
+          [ "$pkg" = "$tag" ] || { echo "::error::tag $tag != version $pkg — bump before tagging"; exit 1; }
       - run: uv build
       - uses: pypa/gh-action-pypi-publish@release/v1
         with:

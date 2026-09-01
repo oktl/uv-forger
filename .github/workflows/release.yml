@@ -1,0 +1,44 @@
+name: Release
+
+# Bump version FIRST, commit it, then tag that commit and cut the release.
+# The release's `published` event triggers publish.yml, which builds from the
+# tag — so the tag must already carry the bumped version.
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "Version bump"
+        required: true
+        type: choice
+        options: [patch, minor, major]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v7
+
+      - name: Bump version
+        id: bump
+        run: |
+          uv version --bump "${{ inputs.bump }}"
+          echo "version=$(uv version --short)" >> "$GITHUB_OUTPUT"
+
+      - name: Commit and tag
+        env:
+          V: ${{ steps.bump.outputs.version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "chore: bump version to $V"
+          git push
+          git tag "v$V"
+          git push origin "v$V"
+
+      - name: Next step
+        run: echo "::notice::Tagged v${{ steps.bump.outputs.version }}. Publish it with 'gh release create v${{ steps.bump.outputs.version }} --generate-notes' (or the Releases UI) to trigger publish.yml."
