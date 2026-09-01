@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.2]
+
+### Changed
+
+- Release flow reworked so the version bump always lands before the tag. New `release.yml`
+  (`workflow_dispatch`, patch/minor/major) runs `uv version --bump`, commits it, then tags that
+  commit — the tag can no longer point at a pre-bump commit. It stops at the tag; the GitHub
+  Release is still created by hand, because releases created by `GITHUB_TOKEN` don't trigger
+  `publish.yml`
+- `publish.yml` now fails fast when the tag doesn't match the packaged version, replacing PyPI's
+  opaque `400 File already exists` with a clear error
+
+## [0.5.1]
+
+### Fixed
+
+- `uv sync` failing with `duplicate key` on `[project.scripts]` when the host has uv >= 0.8.
+  Modern `uv init .` scaffolds a packaged app (src/ layout, `uv_build` backend, and a
+  `[project.scripts]` table already present), which then collided with the section
+  `configure_pyproject()` appends. `run_uv_init()` now passes `--app --no-package` to pin
+  the bare-application scaffold (root `main.py`, no build system, no `[project.scripts]`)
+  across uv versions
+
 ## [0.5.0]
 
 Flet 0.86.5 upgrade and a partial move to Flet's declarative (`@ft.component`) style, plus a
@@ -39,12 +62,6 @@ round of dead-code removal. No user-facing feature changes — the UI behaves as
   `EditorHandle`; uv-forger now drives the editor through the public handle instead of 15
   private members
 - Pinned `pygments < 2.20`, which was breaking code blocks in the docs site
-- `uv sync` failing with `duplicate key` on `[project.scripts]` when the host has uv >= 0.8.
-  Modern `uv init .` scaffolds a packaged app (src/ layout, `uv_build` backend, and a
-  `[project.scripts]` table already present), which then collided with the section
-  `configure_pyproject()` appends. `run_uv_init()` now passes `--app --no-package` to pin
-  the bare-application scaffold (root `main.py`, no build system, no `[project.scripts]`)
-  across uv versions
 
 ## [0.4.0]
 
