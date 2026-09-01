@@ -1,0 +1,13 @@
+.img-sm {
+  max-width: 50%;
+  height: auto;
+  display: block;
+  margin: 1rem auto;
+}
+
+.img-lg {
+  max-width: 75%;
+  height: auto;
+  display: block;
+  margin: 1rem auto;
+}
