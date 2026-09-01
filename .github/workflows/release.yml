@@ -12,6 +12,10 @@ on:
         required: true
         type: choice
         options: [patch, minor, major]
+      dry_run:
+        description: "Run the test gate and print the target version, but don't commit, tag, or push"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -34,7 +38,12 @@ jobs:
           uv version --bump "${{ inputs.bump }}"
           echo "version=$(uv version --short)" >> "$GITHUB_OUTPUT"
 
+      - name: Dry run — stop here
+        if: ${{ inputs.dry_run }}
+        run: 'echo "::notice::Dry run OK — tests passed, next release would be v${{ steps.bump.outputs.version }}. Nothing committed, tagged, or pushed."'
+
       - name: Commit and tag
+        if: ${{ !inputs.dry_run }}
         env:
           V: ${{ steps.bump.outputs.version }}
         run: |
@@ -46,4 +55,5 @@ jobs:
           git push origin "v$V"
 
       - name: Next step
+        if: ${{ !inputs.dry_run }}
         run: echo "::notice::Tagged v${{ steps.bump.outputs.version }}. Publish it with 'gh release create v${{ steps.bump.outputs.version }} --generate-notes' (or the Releases UI) to trigger publish.yml."
