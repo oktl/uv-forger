@@ -63,7 +63,7 @@ has to land before the tag, or `publish.yml` builds the old version and PyPI rej
 `400 File already exists`.
 
 1. **Update the changelog** — add a `## [x.y.z]` section to `CHANGELOG.md` and `docs/changelog.md`, commit, push to `main`.
-2. **Run the *Release* workflow** — Actions → Release, or `gh workflow run release.yml -f bump=patch` (`patch` | `minor` | `major`). It runs `uv version --bump`, commits `chore: bump version to x.y.z`, and tags `vx.y.z` **on that commit**.
+2. **Run the *Release* workflow** — Actions → Release, or `gh workflow run release.yml -f bump=patch` (`patch` | `minor` | `major`). It runs the test suite as a gate, then `uv version --bump`, commits `chore: bump version to x.y.z`, and tags `vx.y.z` **on that commit**. Add `-f dry_run=true` (or tick the box in the Actions UI) to rehearse — runs the test gate and prints the target version, then stops without committing, tagging, or pushing.
 3. **Cut the release** — `gh release create vx.y.z --generate-notes`. The `release: published` event triggers `publish.yml`, which builds from the tag and uploads to PyPI via trusted publishing. This step is manual because releases created by `GITHUB_TOKEN` don't trigger other workflows.
 4. **Pull locally** — `git pull` to get the bump commit.
 
